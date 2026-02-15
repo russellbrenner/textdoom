@@ -142,6 +142,19 @@ export class SpriteManager {
   }
 
   /**
+   * Get sprites sorted by distance from player (farthest first for proper rendering)
+   */
+  getSortedSprites(player: Player): Sprite[] {
+    return [...this.sprites]
+      .filter(s => s.state !== 'dead' || s.health > -100) // Show recently dead sprites
+      .sort((a, b) => {
+        const distA = (a.pos.x - player.pos.x) ** 2 + (a.pos.y - player.pos.y) ** 2;
+        const distB = (b.pos.x - player.pos.x) ** 2 + (b.pos.y - player.pos.y) ** 2;
+        return distB - distA; // Farthest first
+      });
+  }
+
+  /**
    * Update all sprites (AI, movement, animation)
    */
   update(player: Player, deltaTime: number): void {

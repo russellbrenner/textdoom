@@ -299,37 +299,69 @@ function endSession(): void {
 }
 
 /**
- * Render single player view
+ * Render single player view (WebGL or Canvas)
  */
 function renderSinglePlayerView(): void {
   // Cast rays
   const rays = raycaster.castRays(player1);
 
-  // Draw textured floor and ceiling
-  renderer.drawFloorCeiling(player1, rays);
+  if (doomRenderer) {
+    // WebGL 3D ASCII rendering
+    doomRenderer.beginFrame();
+    doomRenderer.setCamera(player1);
 
-  // Render walls
-  for (let x = 0; x < rays.length; x++) {
-    const hit = rays[x];
-    const wallHeight = raycaster.calculateWallHeight(hit.distance);
-    const wallType = getWallType(hit.mapX, hit.mapY);
-    renderer.drawWallStrip(x, wallHeight, hit.distance, hit.side, wallType, hit.wallX);
+    // Draw floor/ceiling
+    doomRenderer.drawFloorCeiling(player1);
+
+    // Draw walls
+    doomRenderer.drawWalls(rays.map((hit) => ({
+      perpWallDist: hit.distance,
+      side: hit.side,
+      wallType: getWallType(hit.mapX, hit.mapY),
+      wallX: hit.wallX,
+    })));
+
+    // Draw sprites (enemies)
+    const sortedSprites = spriteManager.getSortedSprites(player1);
+    for (const sprite of sortedSprites) {
+      const distance = Math.sqrt((sprite.pos.x - player1.pos.x) ** 2 + (sprite.pos.y - player1.pos.y) ** 2);
+      doomRenderer.drawSprite(
+        sprite.pos,
+        distance,
+        sprite.type,
+        sprite.state,
+        sprite.health,
+        100 // Max health
+      );
+    }
+
+    // Draw particles
+    doomRenderer.drawParticles();
+
+    // Draw weapon
+    doomRenderer.drawWeapon(weapon1, player1);
+
+    // Draw HUD
+    doomRenderer.drawHUD(player1, weapon1, spriteManager.getKillCount());
+
+    doomRenderer.endFrame();
+  } else {
+    // Fallback canvas rendering
+    renderer.drawFloorCeiling(player1, rays);
+
+    for (let x = 0; x < rays.length; x++) {
+      const hit = rays[x];
+      const wallHeight = raycaster.calculateWallHeight(hit.distance);
+      const wallType = getWallType(hit.mapX, hit.mapY);
+      renderer.drawWallStrip(x, wallHeight, hit.distance, hit.side, wallType, hit.wallX);
+    }
+
+    renderer.drawBloodDecals(goreManager.getDecals(), player1);
+    spriteManager.renderSprites(player1, renderer);
+    renderer.drawGoreParticles(goreManager.getParticles(), player1);
+    renderer.drawWeapon(weapon1);
+    renderer.drawHUD(player1, weapon1, spriteManager.getKillCount());
   }
-
-  // Draw blood decals on floor
-  renderer.drawBloodDecals(goreManager.getDecals(), player1);
-
-  // Render sprites
-  spriteManager.renderSprites(player1, renderer);
-
-  // Draw gore particles
-  renderer.drawGoreParticles(goreManager.getParticles(), player1);
-
-  // Draw weapon overlay
-  renderer.drawWeapon(weapon1);
-
-  // Draw HUD with weapon and kill count
-  renderer.drawHUD(player1, weapon1, spriteManager.getKillCount());
 }
 
 /**
@@ -569,6 +601,29 @@ function gameLoop(timestamp: number): void {
     ? Math.max(player1.screenShake, player2.screenShake)
     : player1.screenShake;
   renderer.applyScreenShake(maxShake);
+
+  // Update WebGL renderer effects
+  if (doomRenderer) {
+    doomRenderer.update(deltaTime);
+    doomRenderer.setScreenShake(maxShake);
+
+    // Damage flash
+    if (player1.damageFlash > 0) {
+      doomRenderer.setDamageFlash(player1.damageFlash, true);
+    }
+
+    // Weapon bob based on movement
+    const isMoving = input.getState(1).forward || input.getState(1).backward ||
+                     input.getState(1).strafeLeft || input.getState(1).strafeRight;
+    doomRenderer.setWeaponBob(isMoving);
+
+    // Spawn particles for gore
+    for (const particle of goreManager.getParticles()) {
+      if (particle.life > 0.95) { // New particle
+        doomRenderer.spawnBlood({ x: particle.pos.x, y: particle.pos.y }, 1);
+      }
+    }
+  }
 
   // Set up lighting
   renderer.clearLights();
