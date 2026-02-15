@@ -46,6 +46,9 @@ const NETWORK_UPDATE_RATE = 1 / 30; // 30 updates per second
 let sessionStartTime = 0;
 let leaderboard: Leaderboard = loadLeaderboard();
 
+// Pause state (single player only)
+let isPaused = false;
+
 // Initialise game components
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas not found');
@@ -136,6 +139,21 @@ window.addEventListener('keydown', (e) => {
     }
   } else {
     // In-game controls
+
+    // Pause toggle (P or Escape in single player)
+    if (e.code === 'KeyP' || (e.code === 'Escape' && gameMode === 'single')) {
+      if (gameMode === 'single') {
+        isPaused = !isPaused;
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // If paused, only handle unpause
+    if (isPaused) {
+      return;
+    }
+
     if (e.code === 'KeyR') {
       const p1Dead = player1.isDead;
       const p2Dead = (gameMode === 'multi' || gameMode === 'online') ? player2.isDead : true;
@@ -144,13 +162,16 @@ window.addEventListener('keydown', (e) => {
       }
     }
     if (e.code === 'KeyH') {
+      isPaused = false; // Unpause if opening help
       gameMode = 'tutorial';
     }
     if (e.code === 'Escape') {
+      // Non-single player: exit to menu
       endSession(); // Record stats before leaving
       if (gameMode === 'online') {
         networkManager.disconnect();
       }
+      isPaused = false;
       gameMode = 'menu';
     }
   }
@@ -550,6 +571,13 @@ function gameLoop(timestamp: number): void {
   if (gameMode === 'tutorial') {
     renderer.setSplitScreen(false);
     renderer.drawTutorial();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // Pause screen (single player only)
+  if (isPaused && gameMode === 'single') {
+    renderer.drawPauseScreen();
     requestAnimationFrame(gameLoop);
     return;
   }

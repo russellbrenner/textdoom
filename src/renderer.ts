@@ -1879,6 +1879,48 @@ export class Renderer {
     );
   }
 
+  /** Draw pause screen overlay */
+  drawPauseScreen(): void {
+    const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
+
+    // Semi-transparent dark overlay
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
+
+    // Pause title
+    this.ctx.fillStyle = '#ffff00';
+    this.ctx.font = `${cellHeight * 3}px monospace`;
+    const title = 'PAUSED';
+    const titleWidth = title.length * cellWidth * 1.8;
+    this.ctx.fillText(title, (screenWidth * cellWidth - titleWidth) / 2, (screenHeight / 2 - 5) * cellHeight);
+
+    this.ctx.font = `${cellHeight}px monospace`;
+
+    // Instructions
+    this.ctx.fillStyle = '#ffffff';
+    const instructions = [
+      'Press P or ESC to resume',
+      '',
+      'WASD - Move',
+      'Mouse/Space - Fire',
+      '1-8 - Switch weapon',
+      'H - Help',
+    ];
+
+    const startY = screenHeight / 2;
+    for (let i = 0; i < instructions.length; i++) {
+      const text = instructions[i];
+      const textWidth = text.length * cellWidth;
+      this.ctx.fillText(text, (screenWidth * cellWidth - textWidth) / 2, (startY + i * 2) * cellHeight);
+    }
+
+    // Quit hint
+    this.ctx.fillStyle = '#666666';
+    const quitHint = 'Press ESC twice to quit to menu';
+    const quitWidth = quitHint.length * cellWidth;
+    this.ctx.fillText(quitHint, (screenWidth * cellWidth - quitWidth) / 2, (screenHeight - 5) * cellHeight);
+  }
+
   /** Get z-buffer for sprite rendering */
   getZBuffer(): number[] {
     return this.zBuffer;
