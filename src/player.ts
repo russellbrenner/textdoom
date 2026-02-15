@@ -22,11 +22,11 @@ export function createPlayer(playerId: PlayerId = 1): Player {
     health: 100,
     armor: 0,
     ammo: {
-      bullets: 50,   // Pistol/chaingun
-      shells: 10,    // Shotgun (give some starting ammo in multiplayer)
-      rockets: 0,    // Rocket launcher
-      cells: 0,      // Plasma/BFG
-      fuel: 0,       // Flamethrower
+      bullets: 100,  // Pistol/chaingun - plenty to start
+      shells: 20,    // Shotgun - enough for early game
+      rockets: 5,    // Rocket launcher - a few big booms
+      cells: 50,     // Plasma/BFG - can try plasma
+      fuel: 50,      // Flamethrower - can try it out
     },
     isDead: false,
     damageFlash: 0,
@@ -45,11 +45,11 @@ export function resetPlayer(player: Player, playerId: PlayerId = 1): void {
   player.health = 100;
   player.armor = 0;
   player.ammo = {
-    bullets: 50,
-    shells: 10,
-    rockets: 0,
-    cells: 0,
-    fuel: 0,
+    bullets: 100,
+    shells: 20,
+    rockets: 5,
+    cells: 50,
+    fuel: 50,
   };
   player.isDead = false;
   player.damageFlash = 0;

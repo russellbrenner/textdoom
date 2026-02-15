@@ -104,6 +104,14 @@ function isPickup(type: SpriteType): boolean {
          type === 'ammo_fuel';
 }
 
+/** Respawn tracking for pickups */
+interface RespawnEntry {
+  spawn: SpriteSpawn;
+  respawnTime: number;
+}
+
+const RESPAWN_DELAY = 30000; // 30 seconds
+
 /**
  * Sprite manager - handles all sprites and their AI
  */
@@ -112,6 +120,7 @@ export class SpriteManager {
   private config: GameConfig;
   private killCount: number = 0;
   private lastSummonTime: number = 0;
+  private respawnQueue: RespawnEntry[] = [];
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -125,6 +134,7 @@ export class SpriteManager {
     this.sprites = spawns.map(createSprite);
     this.killCount = 0;
     this.lastSummonTime = Date.now();
+    this.respawnQueue = []; // Clear respawn queue on reset
   }
 
   /**
@@ -164,6 +174,18 @@ export class SpriteManager {
       }
 
       this.updateEnemy(sprite, player, deltaTime);
+    }
+
+    // Check for pickup respawns
+    const now = Date.now();
+    for (let i = this.respawnQueue.length - 1; i >= 0; i--) {
+      const entry = this.respawnQueue[i];
+      if (now >= entry.respawnTime) {
+        // Respawn the pickup
+        const newSprite = createSprite(entry.spawn);
+        this.sprites.push(newSprite);
+        this.respawnQueue.splice(i, 1);
+      }
     }
   }
 
@@ -310,6 +332,12 @@ export class SpriteManager {
 
     // Can attack?
     if (sprite.attackCooldown <= 0) {
+      // Calculate damage direction (from enemy to player)
+      const dx = sprite.pos.x - player.pos.x;
+      const dy = sprite.pos.y - player.pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const damageDir = dist > 0 ? { x: dx / dist, y: dy / dist } : { x: 0, y: 0 };
+
       // Ranged enemies use projectiles
       if (stats.projectileDamage && distToPlayer > 2) {
         // Just mark as attacking - actual projectile system would handle this
@@ -318,6 +346,7 @@ export class SpriteManager {
           const damage = stats.projectileDamage;
           player.health = Math.max(0, player.health - damage);
           player.damageFlash = 1;
+          player.damageDirection = damageDir;
           if (player.health <= 0) {
             player.isDead = true;
           }
@@ -327,6 +356,7 @@ export class SpriteManager {
         if (!player.isDead) {
           player.health = Math.max(0, player.health - stats.damage);
           player.damageFlash = 1;
+          player.damageDirection = damageDir;
           if (player.health <= 0) {
             player.isDead = true;
           }
@@ -635,6 +665,15 @@ export class SpriteManager {
         }
 
         if (pickedUp) {
+          // Add to respawn queue
+          this.respawnQueue.push({
+            spawn: {
+              x: Math.floor(sprite.pos.x),
+              y: Math.floor(sprite.pos.y),
+              type: sprite.type,
+            },
+            respawnTime: Date.now() + RESPAWN_DELAY,
+          });
           this.sprites.splice(i, 1);
         }
       }

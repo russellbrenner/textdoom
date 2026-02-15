@@ -1212,23 +1212,34 @@ export class Renderer {
       this.ctx.fillStyle = '#ffff00';
       this.ctx.fillText(`[${weaponName}]`, (offsetX + 1) * cellWidth, (screenHeight - 1) * cellHeight);
 
+      // Low ammo thresholds - flash red when below
+      const lowAmmo = { bullets: 20, shells: 5, rockets: 2, cells: 20, fuel: 20 };
+      const flashOn = Math.sin(this.animTime * 8) > 0;
+
+      // Helper to get ammo colour (flashes red when low)
+      const getAmmoColour = (amount: number, threshold: number, baseColour: string): string => {
+        if (amount <= threshold && flashOn) return '#ff0000';
+        if (amount <= threshold) return '#880000';
+        return baseColour;
+      };
+
       if (this.splitScreen) {
         // Compact ammo display for split-screen
-        this.ctx.fillStyle = '#ffcc00';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc00');
         this.ctx.fillText(`•${player.ammo.bullets}`, (offsetX + 9) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = '#ff8800';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff8800');
         this.ctx.fillText(`▪${player.ammo.shells}`, (offsetX + 14) * cellWidth, (screenHeight - 1) * cellHeight);
       } else {
         // Full ammo display for single player
-        this.ctx.fillStyle = '#ffcc00';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc00');
         this.ctx.fillText(`•${player.ammo.bullets}`, (offsetX + 15) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = '#ff8800';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff8800');
         this.ctx.fillText(`▪${player.ammo.shells}`, (offsetX + 22) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = '#ff4400';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.rockets, lowAmmo.rockets, '#ff4400');
         this.ctx.fillText(`◆${player.ammo.rockets}`, (offsetX + 28) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = '#00ffff';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.cells, lowAmmo.cells, '#00ffff');
         this.ctx.fillText(`●${player.ammo.cells}`, (offsetX + 34) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = '#ff6600';
+        this.ctx.fillStyle = getAmmoColour(player.ammo.fuel, lowAmmo.fuel, '#ff6600');
         this.ctx.fillText(`▲${player.ammo.fuel}`, (offsetX + 40) * cellWidth, (screenHeight - 1) * cellHeight);
       }
     }
@@ -1286,6 +1297,38 @@ export class Renderer {
       gradient.addColorStop(1, `rgba(255, 0, 0, ${player.damageFlash * 0.5})`);
       this.ctx.fillStyle = gradient;
       this.ctx.fillRect(offsetX * cellWidth, 0, screenWidth * cellWidth, screenHeight * cellHeight);
+
+      // Damage direction indicator (arrows at screen edges)
+      if (player.damageDirection) {
+        const alpha = player.damageFlash;
+        this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+        this.ctx.font = `${cellHeight * 2}px monospace`;
+
+        // Calculate relative direction (in player's view space)
+        const relX = player.damageDirection.x * player.dir.x + player.damageDirection.y * player.dir.y;
+        const relY = player.damageDirection.x * (-player.dir.y) + player.damageDirection.y * player.dir.x;
+
+        // Draw arrows based on direction
+        const edgeMargin = 3;
+        if (relX > 0.3) {
+          // Damage from front - show at top
+          this.ctx.fillText('▼', centerX - cellWidth, edgeMargin * cellHeight);
+        }
+        if (relX < -0.3) {
+          // Damage from behind - show at bottom
+          this.ctx.fillText('▲', centerX - cellWidth, (screenHeight - edgeMargin - 2) * cellHeight);
+        }
+        if (relY > 0.3) {
+          // Damage from left
+          this.ctx.fillText('►', (offsetX + edgeMargin) * cellWidth, centerY);
+        }
+        if (relY < -0.3) {
+          // Damage from right
+          this.ctx.fillText('◄', (offsetX + screenWidth - edgeMargin - 2) * cellWidth, centerY);
+        }
+
+        this.ctx.font = `${cellHeight}px monospace`;
+      }
     }
 
     // Death screen

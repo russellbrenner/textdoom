@@ -21,6 +21,7 @@ export interface Player {
   isDead: boolean;
   damageFlash: number; // 0-1, for red flash effect
   screenShake: number; // Screen shake intensity
+  damageDirection?: Vec2; // Direction damage came from (world space)
 }
 
 /** Sprite types */
