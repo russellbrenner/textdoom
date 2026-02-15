@@ -48,6 +48,13 @@ npm run dev
 npm run build
 ```
 
+## Running on Kindle
+
+Want to play TextDoom on your Kindle? See **[KINDLE.md](KINDLE.md)** for detailed instructions on:
+- Using the live hosted version (easiest)
+- Compiling and deploying locally
+- Kindle-specific considerations and troubleshooting
+
 ## Tech Stack
 
 - TypeScript
