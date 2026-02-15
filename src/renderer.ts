@@ -1430,17 +1430,17 @@ export class Renderer {
     this.ctx.fillStyle = '#444444';
     this.ctx.fillText('Press H for controls help', (screenWidth * cellWidth - 26 * cellWidth) / 2, (screenHeight - 4) * cellHeight);
 
-    // Leaderboards (left and right panels)
-    if (leaderboard && leaderboard.gamesPlayed > 0) {
-      const panelWidth = 28;
-      const leftX = 8;
-      const rightX = screenWidth - panelWidth - 8;
-      const panelY = 18;
+    // Leaderboards (left and right panels) - always show
+    const panelWidth = 28;
+    const leftX = 8;
+    const rightX = screenWidth - panelWidth - 8;
+    const panelY = 18;
 
-      // Left panel: TOP KILLS
-      this.ctx.fillStyle = '#ff6600';
-      this.ctx.fillText('═══ TOP KILLS ═══', leftX * cellWidth, panelY * cellHeight);
+    // Left panel: TOP KILLS
+    this.ctx.fillStyle = '#ff6600';
+    this.ctx.fillText('══ TOP KILLS ══', leftX * cellWidth, panelY * cellHeight);
 
+    if (leaderboard && leaderboard.topKills.length > 0) {
       for (let i = 0; i < Math.min(5, leaderboard.topKills.length); i++) {
         const entry = leaderboard.topKills[i];
         const rank = `${i + 1}.`;
@@ -1449,11 +1449,18 @@ export class Renderer {
         this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
         this.ctx.fillText(`${rank} ${kills.padEnd(12)} ${time}`, leftX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
+    } else {
+      this.ctx.fillStyle = '#555555';
+      this.ctx.fillText('No games yet', leftX * cellWidth, (panelY + 2) * cellHeight);
+      this.ctx.fillText('Play to get on', leftX * cellWidth, (panelY + 3) * cellHeight);
+      this.ctx.fillText('the leaderboard!', leftX * cellWidth, (panelY + 4) * cellHeight);
+    }
 
-      // Right panel: LONGEST GAMES
-      this.ctx.fillStyle = '#00ccff';
-      this.ctx.fillText('═══ LONGEST GAMES ═══', rightX * cellWidth, panelY * cellHeight);
+    // Right panel: LONGEST GAMES
+    this.ctx.fillStyle = '#00ccff';
+    this.ctx.fillText('══ LONGEST GAMES ══', rightX * cellWidth, panelY * cellHeight);
 
+    if (leaderboard && leaderboard.topTime.length > 0) {
       for (let i = 0; i < Math.min(5, leaderboard.topTime.length); i++) {
         const entry = leaderboard.topTime[i];
         const rank = `${i + 1}.`;
@@ -1462,28 +1469,22 @@ export class Renderer {
         this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
         this.ctx.fillText(`${rank} ${time.padEnd(8)} ${kills}`, rightX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
-
-      // Total stats at bottom of panels
-      this.ctx.fillStyle = '#666666';
-      const totalY = panelY + 8;
-      this.ctx.fillText(`Total: ${leaderboard.totalKills} kills`, leftX * cellWidth, totalY * cellHeight);
-      this.ctx.fillText(`Games: ${leaderboard.gamesPlayed}`, rightX * cellWidth, totalY * cellHeight);
-      this.ctx.fillText(`Time: ${formatTime(leaderboard.totalTimePlayed)}`, (rightX + 12) * cellWidth, totalY * cellHeight);
     } else {
-      // Show demon faces if no stats yet
-      const demonArt = [
-        '  /\\  /\\  ',
-        ' /  \\/  \\ ',
-        '|  ◉  ◉  |',
-        ' \\  \\/  / ',
-        '  \\____/  ',
-      ];
-      this.ctx.fillStyle = '#ff4444';
-      for (let row = 0; row < demonArt.length; row++) {
-        this.ctx.fillText(demonArt[row], 15 * cellWidth, (18 + row) * cellHeight);
-        this.ctx.fillText(demonArt[row], (screenWidth - 25) * cellWidth, (18 + row) * cellHeight);
-      }
+      this.ctx.fillStyle = '#555555';
+      this.ctx.fillText('No games yet', rightX * cellWidth, (panelY + 2) * cellHeight);
+      this.ctx.fillText('Survive longer', rightX * cellWidth, (panelY + 3) * cellHeight);
+      this.ctx.fillText('to rank here!', rightX * cellWidth, (panelY + 4) * cellHeight);
     }
+
+    // Total stats at bottom of panels
+    this.ctx.fillStyle = '#666666';
+    const totalY = panelY + 8;
+    const totalKills = leaderboard?.totalKills ?? 0;
+    const gamesPlayed = leaderboard?.gamesPlayed ?? 0;
+    const totalTime = leaderboard?.totalTimePlayed ?? 0;
+    this.ctx.fillText(`Total: ${totalKills} kills`, leftX * cellWidth, totalY * cellHeight);
+    this.ctx.fillText(`Games: ${gamesPlayed}`, rightX * cellWidth, totalY * cellHeight);
+    this.ctx.fillText(`Time: ${formatTime(totalTime)}`, (rightX + 12) * cellWidth, totalY * cellHeight);
   }
 
   /** Draw online lobby screen (host waiting or join code entry) */
