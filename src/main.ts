@@ -9,7 +9,8 @@ import { SpriteManager } from './sprites';
 import { createWeapon, updateWeapon } from './weapon';
 import { GoreManager } from './gore';
 import { networkManager } from './network';
-import { loadLeaderboard, recordGameSession, getUsername, setUsername, type Leaderboard } from './stats';
+import { loadLeaderboard, recordGameSession, getUsername, setUsername, loadShopState, purchaseUpgrade, type Leaderboard } from './stats';
+import type { WeaponType, ShopState } from './types';
 
 // Renderer mode: 'webgl' for new 3D ASCII, 'canvas' for legacy
 // Using canvas for now as it's more stable and readable
@@ -26,7 +27,7 @@ const CONFIG: GameConfig = {
 };
 
 // Game modes
-type GameMode = 'menu' | 'single' | 'multi' | 'online' | 'tutorial' | 'lobby_host' | 'lobby_join' | 'username';
+type GameMode = 'menu' | 'single' | 'multi' | 'online' | 'tutorial' | 'lobby_host' | 'lobby_join' | 'username' | 'shop';
 
 // Game state
 let lastTime = 0;
@@ -47,8 +48,15 @@ const NETWORK_UPDATE_RATE = 1 / 30; // 30 updates per second
 let sessionStartTime = 0;
 let leaderboard: Leaderboard = loadLeaderboard();
 
+// Shop state
+let shopState: ShopState = loadShopState();
+let shopSelection = 0; // Currently selected weapon index (0-10)
+
 // Pause state (single player only)
 let isPaused = false;
+
+// Weapon order for shop (same as weapon.ts)
+const SHOP_WEAPONS: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
 
 // Initialise game components
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -148,6 +156,38 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyH' || e.code === 'Escape') {
       gameMode = 'menu';
       e.preventDefault();
+    }
+  } else if (gameMode === 'shop') {
+    // Shop controls
+    if (e.code === 'Escape') {
+      gameMode = 'menu';
+      e.preventDefault();
+    } else if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      shopSelection = Math.max(0, shopSelection - 1);
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      shopSelection = Math.min(SHOP_WEAPONS.length - 1, shopSelection + 1);
+    } else {
+      // Number key purchases (1-9, 0 for 10, - for 11)
+      let weaponIndex = -1;
+      if (e.code === 'Digit1') weaponIndex = 0;
+      else if (e.code === 'Digit2') weaponIndex = 1;
+      else if (e.code === 'Digit3') weaponIndex = 2;
+      else if (e.code === 'Digit4') weaponIndex = 3;
+      else if (e.code === 'Digit5') weaponIndex = 4;
+      else if (e.code === 'Digit6') weaponIndex = 5;
+      else if (e.code === 'Digit7') weaponIndex = 6;
+      else if (e.code === 'Digit8') weaponIndex = 7;
+      else if (e.code === 'Digit9') weaponIndex = 8;
+      else if (e.code === 'Digit0') weaponIndex = 9;
+      else if (e.code === 'Minus') weaponIndex = 10;
+
+      if (weaponIndex >= 0 && weaponIndex < SHOP_WEAPONS.length) {
+        const weapon = SHOP_WEAPONS[weaponIndex];
+        if (purchaseUpgrade(weapon)) {
+          // Refresh shop state after purchase
+          shopState = loadShopState();
+        }
+      }
     }
   } else {
     // In-game controls
@@ -541,7 +581,7 @@ function gameLoop(timestamp: number): void {
       menuUpPressed = false;
     }
     if (menuDownPressed) {
-      menuSelection = Math.min(3, menuSelection + 1);
+      menuSelection = Math.min(4, menuSelection + 1); // 5 options now (0-4)
       menuDownPressed = false;
     }
     if (menuSelectPressed) {
@@ -561,6 +601,12 @@ function gameLoop(timestamp: number): void {
           joinCode = '';
           lobbyStatus = '';
           break;
+        case 4:
+          // Open shop
+          shopState = loadShopState(); // Refresh shop state
+          shopSelection = 0;
+          gameMode = 'shop';
+          break;
       }
     }
 
@@ -571,6 +617,13 @@ function gameLoop(timestamp: number): void {
     } else {
       renderer.drawMainMenu(menuSelection, leaderboard);
     }
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  if (gameMode === 'shop') {
+    // Draw shop screen
+    renderer.drawShop(shopState, shopSelection);
     requestAnimationFrame(gameLoop);
     return;
   }

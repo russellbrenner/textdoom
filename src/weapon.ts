@@ -2,6 +2,7 @@ import type { WeaponState, WeaponType, Player } from './types';
 import { SpriteManager } from './sprites';
 import { GoreManager } from './gore';
 import type { Renderer } from './renderer';
+import { getUpgradeLevel } from './stats';
 
 // Weapon stats: damage, cooldown, ammo type, ammo per shot, special properties
 interface WeaponStats {
@@ -109,6 +110,24 @@ const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
 const WEAPON_ORDER: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
 
 /**
+ * Get damage multiplier based on weapon upgrade level
+ * Each level adds 10% (0.1), max +50% at level 5
+ */
+export function getWeaponDamageMultiplier(weaponType: WeaponType): number {
+  const level = getUpgradeLevel(weaponType);
+  return 1 + (level * 0.1);
+}
+
+/**
+ * Get effective damage for a weapon (base damage × multiplier)
+ */
+export function getEffectiveDamage(weaponType: WeaponType): number {
+  const stats = WEAPON_STATS[weaponType];
+  const multiplier = getWeaponDamageMultiplier(weaponType);
+  return Math.floor(stats.damage * multiplier);
+}
+
+/**
  * Create initial weapon state
  */
 export function createWeapon(): WeaponState {
@@ -202,6 +221,9 @@ export function updateWeapon(
       }
 
       // Handle hit detection
+      // Get effective damage (base × upgrade multiplier)
+      const effectiveDamage = getEffectiveDamage(weapon.type);
+
       if (weapon.type === 'flamethrower') {
         // Flamethrower: spawn flame particles and damage enemies in cone
         if (goreManager) {
@@ -214,7 +236,7 @@ export function updateWeapon(
           const spreadAngle = (Math.random() - 0.5) * 0.3; // Wide cone
           const hitSprite = spriteManager.getSpriteInDirectionWithRange(player, spreadAngle, range);
           if (hitSprite) {
-            const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
+            const killed = spriteManager.damageSprite(hitSprite, effectiveDamage, player, goreManager);
             // Show hit marker feedback
             if (renderer) renderer.showHitMarker();
             if (killed) {
@@ -230,7 +252,7 @@ export function updateWeapon(
           const spreadAngle = (Math.random() - 0.5) * 0.15; // ~8 degree spread
           const hitSprite = spriteManager.getSpriteInDirection(player, spreadAngle);
           if (hitSprite) {
-            const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
+            const killed = spriteManager.damageSprite(hitSprite, effectiveDamage, player, goreManager);
             hitCount++;
             if (killed) {
               if (goreManager) goreManager.spawnKillGore(hitSprite.pos, player.pos, true);
@@ -244,18 +266,18 @@ export function updateWeapon(
         // Single shot weapons
         const hitSprite = spriteManager.getSpriteAtCenter(player);
         if (hitSprite) {
-          const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
+          const killed = spriteManager.damageSprite(hitSprite, effectiveDamage, player, goreManager);
           // Show hit marker feedback
           if (renderer) renderer.showHitMarker();
 
-          // Splash damage for rockets/BFG
+          // Splash damage for rockets/BFG (uses effective damage for splash too)
           if (stats.splash) {
-            spriteManager.applySplashDamage(hitSprite.pos, stats.splash, stats.damage * 0.5, player, goreManager);
+            spriteManager.applySplashDamage(hitSprite.pos, stats.splash, Math.floor(effectiveDamage * 0.5), player, goreManager);
           }
 
           if (killed) {
             if (goreManager) {
-              const overkill = stats.damage > 50;
+              const overkill = effectiveDamage > 50;
               goreManager.spawnKillGore(hitSprite.pos, player.pos, overkill);
             }
             if (renderer) renderer.showKillMessage(hitSprite.type);

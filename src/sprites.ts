@@ -2,6 +2,7 @@ import type { Sprite, SpriteSpawn, SpriteType, Player, Vec2, GameConfig } from '
 import { isWall } from './map';
 import { Renderer } from './renderer';
 import { GoreManager } from './gore';
+import { awardCredits } from './stats';
 
 const COLLISION_MARGIN = 0.3;
 
@@ -62,6 +63,15 @@ const ENEMY_STATS: Record<string, EnemyStats> = {
     projectileRange: 12.0,
     canSummon: false,     // Was true - no more summons
   },
+};
+
+/** Credit rewards per enemy type */
+const ENEMY_CREDITS: Record<string, number> = {
+  imp: 10,
+  demon: 25,
+  cacodemon: 35,
+  baron: 50,
+  cyberdemon: 200,
 };
 
 let nextSpriteId = 1;
@@ -485,6 +495,10 @@ export class SpriteManager {
       sprite.state = 'dead';
       sprite.health = 0;
       this.killCount++;
+
+      // Award credits for the kill
+      const credits = ENEMY_CREDITS[sprite.type] || 10;
+      awardCredits(credits);
 
       // Check for overkill (damage > remaining HP × 2)
       const overkill = damage > previousHealth * 2;

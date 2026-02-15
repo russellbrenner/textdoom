@@ -125,3 +125,12 @@ export interface InputState {
 
 /** Player ID for multiplayer */
 export type PlayerId = 1 | 2;
+
+/** Weapon upgrade levels (0-5 per weapon) */
+export type WeaponUpgrades = Record<WeaponType, number>;
+
+/** Shop state persisted to localStorage */
+export interface ShopState {
+  credits: number;
+  upgrades: WeaponUpgrades;
+}

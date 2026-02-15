@@ -1,6 +1,7 @@
-import type { GameConfig, Player, WeaponState, GoreParticle, BloodDecal, RayHit, LightSource, Vec2 } from './types';
+import type { GameConfig, Player, WeaponState, GoreParticle, BloodDecal, RayHit, LightSource, Vec2, ShopState, WeaponType } from './types';
 import { sampleWallStrip, sampleFloorTexture, sampleCeilingTexture } from './textures';
-import { formatTime, type Leaderboard } from './stats';
+import { formatTime, type Leaderboard, getUpgradeCost, MAX_UPGRADE_LEVEL, loadShopState } from './stats';
+import { getWeaponStats } from './weapon';
 
 // Weapon ASCII art frames (12x7 for better detail)
 const WEAPON_ART: Record<string, { idle: string[]; fired: string[] }> = {
@@ -1310,6 +1311,13 @@ export class Renderer {
       this.ctx.fillText(`KILLS: ${killCount}`, (offsetX + screenWidth - 12) * cellWidth, (screenHeight - 1) * cellHeight);
     }
 
+    // Credits display (single player only, top-right area)
+    if (!this.splitScreen) {
+      const shopState = loadShopState();
+      this.ctx.fillStyle = '#ffdd00';
+      this.ctx.fillText(`¤ ${shopState.credits}`, (offsetX + screenWidth - 10) * cellWidth, 3 * cellHeight);
+    }
+
     // Hit marker (red X that flashes on successful hit)
     if (this.hitMarker.timer > 0) {
       const alpha = this.hitMarker.timer / 0.15;
@@ -1531,12 +1539,13 @@ export class Renderer {
     this.ctx.fillText(subtitle, (screenWidth * cellWidth - subtitle.length * cellWidth) / 2, (titleY + 5) * cellHeight);
 
     // Menu options
-    const menuY = 22;
+    const menuY = 20;
     const options = [
       { label: '1 PLAYER', desc: 'Solo demon slaying' },
       { label: '2 PLAYERS LOCAL', desc: 'Split-screen co-op' },
       { label: 'HOST ONLINE', desc: 'Create a game for a friend to join' },
       { label: 'JOIN ONLINE', desc: 'Join a friend\'s game with a code' },
+      { label: 'ARMOURY', desc: 'Upgrade your weapons with credits' },
     ];
 
     for (let i = 0; i < options.length; i++) {
@@ -2007,6 +2016,145 @@ export class Renderer {
     this.ctx.fillStyle = currentInput.length >= 1 ? '#00ff00' : '#666666';
     const enterHint = currentInput.length >= 1 ? 'Press ENTER to continue' : 'Enter at least 1 character';
     this.ctx.fillText(enterHint, (screenWidth * cellWidth - enterHint.length * cellWidth) / 2, 40 * cellHeight);
+  }
+
+  /** Draw shop/armoury screen */
+  drawShop(shopState: ShopState, selectedWeapon: number): void {
+    const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
+
+    // Dark background
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
+
+    // Animated background (subtle)
+    for (let i = 0; i < 30; i++) {
+      const x = ((i * 137 + Math.floor(this.animTime * 10)) % screenWidth);
+      const y = ((i * 89) % screenHeight);
+      this.ctx.fillStyle = '#111122';
+      this.ctx.fillText('·', x * cellWidth, y * cellHeight);
+    }
+
+    // Title
+    this.ctx.fillStyle = '#ffcc00';
+    this.ctx.font = `${cellHeight * 2.5}px monospace`;
+    const title = 'ARMOURY';
+    const titleWidth = title.length * cellWidth * 1.5;
+    this.ctx.fillText(title, (screenWidth * cellWidth - titleWidth) / 2, 6 * cellHeight);
+
+    this.ctx.font = `${cellHeight}px monospace`;
+
+    // Credit balance
+    this.ctx.fillStyle = '#ffdd00';
+    const creditsText = `Credits: ${shopState.credits} ¤`;
+    this.ctx.fillText(creditsText, (screenWidth * cellWidth - creditsText.length * cellWidth) / 2, 10 * cellHeight);
+
+    // Weapon lists - melee on left, ranged on right
+    const meleeWeapons: WeaponType[] = ['fist', 'knife', 'hammer', 'axe'];
+    const rangedWeapons: WeaponType[] = ['pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
+
+    const leftX = 25;
+    const rightX = 110;
+    const startY = 14;
+
+    // Column headers
+    this.ctx.fillStyle = '#888888';
+    this.ctx.fillText('MELEE', leftX * cellWidth, startY * cellHeight);
+    this.ctx.fillText('RANGED', rightX * cellWidth, startY * cellHeight);
+
+    // Key mappings for weapons
+    const keyMap: Record<WeaponType, string> = {
+      fist: '1',
+      knife: '2',
+      hammer: '3',
+      axe: '4',
+      pistol: '5',
+      shotgun: '6',
+      chaingun: '7',
+      rocket: '8',
+      plasma: '9',
+      bfg: '0',
+      flamethrower: '-',
+    };
+
+    // Draw melee weapons
+    for (let i = 0; i < meleeWeapons.length; i++) {
+      const weapon = meleeWeapons[i];
+      const y = startY + 2 + i * 3;
+      const isSelected = selectedWeapon === i;
+      this.drawWeaponUpgradeEntry(weapon, keyMap[weapon], leftX, y, isSelected, shopState);
+    }
+
+    // Draw ranged weapons
+    for (let i = 0; i < rangedWeapons.length; i++) {
+      const weapon = rangedWeapons[i];
+      const y = startY + 2 + i * 3;
+      const isSelected = selectedWeapon === meleeWeapons.length + i;
+      this.drawWeaponUpgradeEntry(weapon, keyMap[weapon], rightX, y, isSelected, shopState);
+    }
+
+    // Instructions
+    this.ctx.fillStyle = '#666666';
+    const instructions = 'Press 1-9, 0, - to upgrade | ESC to exit';
+    this.ctx.fillText(instructions, (screenWidth * cellWidth - instructions.length * cellWidth) / 2, (screenHeight - 4) * cellHeight);
+  }
+
+  /** Draw a single weapon upgrade entry in the shop */
+  private drawWeaponUpgradeEntry(
+    weapon: WeaponType,
+    key: string,
+    x: number,
+    y: number,
+    isSelected: boolean,
+    shopState: ShopState
+  ): void {
+    const { cellWidth, cellHeight } = this.config;
+    const level = shopState.upgrades[weapon] ?? 0;
+    const cost = getUpgradeCost(weapon);
+    const canAfford = cost !== null && shopState.credits >= cost;
+    const isMaxed = level >= MAX_UPGRADE_LEVEL;
+
+    // Get base and current damage
+    const stats = getWeaponStats(weapon);
+    const baseDamage = stats.damage;
+    const currentDamage = Math.floor(baseDamage * (1 + level * 0.1));
+    const nextDamage = !isMaxed ? Math.floor(baseDamage * (1 + (level + 1) * 0.1)) : currentDamage;
+
+    // Selection indicator
+    if (isSelected) {
+      this.ctx.fillStyle = '#ffff00';
+      this.ctx.fillText('>', (x - 2) * cellWidth, y * cellHeight);
+    }
+
+    // Key number
+    this.ctx.fillStyle = '#888888';
+    this.ctx.fillText(`${key}.`, x * cellWidth, y * cellHeight);
+
+    // Weapon name
+    this.ctx.fillStyle = isSelected ? '#ffffff' : '#aaaaaa';
+    const name = weapon.toUpperCase().padEnd(12);
+    this.ctx.fillText(name, (x + 3) * cellWidth, y * cellHeight);
+
+    // Level indicator
+    const levelText = `Lv ${level}/${MAX_UPGRADE_LEVEL}`;
+    this.ctx.fillStyle = level > 0 ? '#00ff00' : '#666666';
+    this.ctx.fillText(levelText, (x + 16) * cellWidth, y * cellHeight);
+
+    // Cost or MAXED
+    if (isMaxed) {
+      this.ctx.fillStyle = '#00ff88';
+      this.ctx.fillText('[MAXED]', (x + 3) * cellWidth, (y + 1) * cellHeight);
+    } else {
+      this.ctx.fillStyle = canAfford ? '#ffdd00' : '#884400';
+      this.ctx.fillText(`[${cost}¤]`, (x + 3) * cellWidth, (y + 1) * cellHeight);
+    }
+
+    // Damage info
+    this.ctx.fillStyle = '#666666';
+    if (isMaxed) {
+      this.ctx.fillText(`Dmg: ${currentDamage}`, (x + 12) * cellWidth, (y + 1) * cellHeight);
+    } else {
+      this.ctx.fillText(`Dmg: ${currentDamage} → ${nextDamage}`, (x + 12) * cellWidth, (y + 1) * cellHeight);
+    }
   }
 
   /** Draw pause screen overlay */
