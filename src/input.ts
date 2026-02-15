@@ -146,6 +146,8 @@ export class InputHandler {
   }
 
   private updateKey(code: string, pressed: boolean): void {
+    const singlePlayer = this.player2 === null;
+
     // === PLAYER 1: WASD + Q/E for strafe, Space to fire ===
     switch (code) {
       case 'KeyW':
@@ -171,29 +173,49 @@ export class InputHandler {
         break;
     }
 
-    // === PLAYER 2: Arrow keys + comma/period for strafe, Enter to fire ===
-    switch (code) {
-      case 'ArrowUp':
-        this.state2.forward = pressed;
-        break;
-      case 'ArrowDown':
-        this.state2.backward = pressed;
-        break;
-      case 'ArrowLeft':
-        this.state2.left = pressed;
-        break;
-      case 'ArrowRight':
-        this.state2.right = pressed;
-        break;
-      case 'Comma':
-        this.state2.strafeLeft = pressed;
-        break;
-      case 'Period':
-        this.state2.strafeRight = pressed;
-        break;
-      case 'Enter':
-        this.state2.fire = pressed;
-        break;
+    // === SINGLE PLAYER: Arrow keys also control Player 1 ===
+    if (singlePlayer) {
+      switch (code) {
+        case 'ArrowUp':
+          this.state1.forward = pressed;
+          break;
+        case 'ArrowDown':
+          this.state1.backward = pressed;
+          break;
+        case 'ArrowLeft':
+          this.state1.left = pressed;
+          break;
+        case 'ArrowRight':
+          this.state1.right = pressed;
+          break;
+      }
+    }
+
+    // === PLAYER 2 (multiplayer only): Arrow keys + comma/period for strafe, Enter to fire ===
+    if (!singlePlayer) {
+      switch (code) {
+        case 'ArrowUp':
+          this.state2.forward = pressed;
+          break;
+        case 'ArrowDown':
+          this.state2.backward = pressed;
+          break;
+        case 'ArrowLeft':
+          this.state2.left = pressed;
+          break;
+        case 'ArrowRight':
+          this.state2.right = pressed;
+          break;
+        case 'Comma':
+          this.state2.strafeLeft = pressed;
+          break;
+        case 'Period':
+          this.state2.strafeRight = pressed;
+          break;
+        case 'Enter':
+          this.state2.fire = pressed;
+          break;
+      }
     }
   }
 
