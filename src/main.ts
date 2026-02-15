@@ -9,7 +9,7 @@ import { SpriteManager } from './sprites';
 import { createWeapon, updateWeapon } from './weapon';
 import { GoreManager } from './gore';
 import { networkManager } from './network';
-import { loadLeaderboard, recordGameSession, type Leaderboard } from './stats';
+import { loadLeaderboard, recordGameSession, getUsername, setUsername, type Leaderboard } from './stats';
 
 // Renderer mode: 'webgl' for new 3D ASCII, 'canvas' for legacy
 // Using canvas for now as it's more stable and readable
@@ -26,15 +26,16 @@ const CONFIG: GameConfig = {
 };
 
 // Game modes
-type GameMode = 'menu' | 'single' | 'multi' | 'online' | 'tutorial' | 'lobby_host' | 'lobby_join';
+type GameMode = 'menu' | 'single' | 'multi' | 'online' | 'tutorial' | 'lobby_host' | 'lobby_join' | 'username';
 
 // Game state
 let lastTime = 0;
 let fpsCounter = 0;
 let fpsTime = 0;
 let currentFps = 0;
-let gameMode: GameMode = 'menu';
+let gameMode: GameMode = getUsername() ? 'menu' : 'username'; // Start with username if not set
 let menuSelection = 0;  // 0 = single, 1 = local multi, 2 = host, 3 = join
+let usernameInput = '';  // For username entry
 
 // Online state
 let lobbyStatus = '';
@@ -90,7 +91,18 @@ let menuDownPressed = false;
 let menuSelectPressed = false;
 
 window.addEventListener('keydown', (e) => {
-  if (gameMode === 'menu') {
+  if (gameMode === 'username') {
+    // Username entry
+    if (e.code === 'Enter' && usernameInput.length >= 1) {
+      setUsername(usernameInput);
+      gameMode = 'menu';
+    } else if (e.code === 'Backspace') {
+      usernameInput = usernameInput.slice(0, -1);
+      e.preventDefault();
+    } else if (e.key.length === 1 && /[a-zA-Z0-9_\- ]/.test(e.key) && usernameInput.length < 12) {
+      usernameInput += e.key;
+    }
+  } else if (gameMode === 'menu') {
     // Menu navigation
     if (e.code === 'ArrowUp' || e.code === 'KeyW') {
       menuUpPressed = true;
@@ -516,6 +528,12 @@ function gameLoop(timestamp: number): void {
   renderer.updateAnimation(deltaTime);
 
   // Handle different game modes
+  if (gameMode === 'username') {
+    renderer.drawUsernameEntry(usernameInput);
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   if (gameMode === 'menu') {
     // Handle menu input
     if (menuUpPressed) {

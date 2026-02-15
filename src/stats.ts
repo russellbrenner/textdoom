@@ -8,6 +8,7 @@ export interface GameSession {
   timePlayed: number; // seconds
   date: string;       // ISO date
   mode: 'single' | 'multi' | 'online';
+  username?: string;  // Player name
 }
 
 export interface Leaderboard {
@@ -19,7 +20,30 @@ export interface Leaderboard {
 }
 
 const STORAGE_KEY = 'textdoom_stats';
+const USERNAME_KEY = 'textdoom_username';
 const MAX_ENTRIES = 5;
+
+/**
+ * Get stored username (or null if not set)
+ */
+export function getUsername(): string | null {
+  try {
+    return localStorage.getItem(USERNAME_KEY);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Set username
+ */
+export function setUsername(name: string): void {
+  try {
+    localStorage.setItem(USERNAME_KEY, name.trim().slice(0, 12)); // Max 12 chars
+  } catch (e) {
+    console.warn('Failed to save username:', e);
+  }
+}
 
 /**
  * Load leaderboard from localStorage
@@ -64,12 +88,14 @@ export function recordGameSession(
   mode: 'single' | 'multi' | 'online'
 ): void {
   const board = loadLeaderboard();
+  const username = getUsername() || 'Player';
 
   const session: GameSession = {
     kills,
     timePlayed,
     date: new Date().toISOString(),
     mode,
+    username,
   };
 
   // Update totals

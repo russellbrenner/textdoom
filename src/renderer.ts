@@ -1525,10 +1525,10 @@ export class Renderer {
       for (let i = 0; i < Math.min(5, leaderboard.topKills.length); i++) {
         const entry = leaderboard.topKills[i];
         const rank = `${i + 1}.`;
-        const kills = `${entry.kills} kills`;
-        const time = formatTime(entry.timePlayed);
+        const name = (entry.username || 'Player').slice(0, 8).padEnd(8);
+        const kills = `${entry.kills}`;
         this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
-        this.ctx.fillText(`${rank} ${kills.padEnd(12)} ${time}`, leftX * cellWidth, (panelY + 2 + i) * cellHeight);
+        this.ctx.fillText(`${rank} ${name} ${kills} kills`, leftX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
     } else {
       this.ctx.fillStyle = '#555555';
@@ -1545,10 +1545,10 @@ export class Renderer {
       for (let i = 0; i < Math.min(5, leaderboard.topTime.length); i++) {
         const entry = leaderboard.topTime[i];
         const rank = `${i + 1}.`;
+        const name = (entry.username || 'Player').slice(0, 8).padEnd(8);
         const time = formatTime(entry.timePlayed);
-        const kills = `${entry.kills} kills`;
         this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
-        this.ctx.fillText(`${rank} ${time.padEnd(8)} ${kills}`, rightX * cellWidth, (panelY + 2 + i) * cellHeight);
+        this.ctx.fillText(`${rank} ${name} ${time}`, rightX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
     } else {
       this.ctx.fillStyle = '#555555';
@@ -1877,6 +1877,73 @@ export class Renderer {
       barWidth * cellWidth * healthPercent,
       cellHeight * 0.6
     );
+  }
+
+  /** Draw username entry screen */
+  drawUsernameEntry(currentInput: string): void {
+    const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
+
+    // Dark background with stars
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
+
+    // Animated starfield
+    this.ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 50; i++) {
+      const x = ((i * 137 + Math.floor(this.animTime * 20)) % screenWidth);
+      const y = ((i * 89) % screenHeight);
+      const char = i % 3 === 0 ? '★' : '·';
+      this.ctx.fillStyle = i % 5 === 0 ? '#ffffff' : '#666688';
+      this.ctx.fillText(char, x * cellWidth, y * cellHeight);
+    }
+
+    // Title
+    this.ctx.fillStyle = '#ff0000';
+    this.ctx.font = `${cellHeight * 3}px monospace`;
+    const title = 'TEXT DOOM';
+    const titleWidth = title.length * cellWidth * 1.8;
+    this.ctx.fillText(title, (screenWidth * cellWidth - titleWidth) / 2, 12 * cellHeight);
+
+    this.ctx.font = `${cellHeight}px monospace`;
+
+    // Welcome message
+    this.ctx.fillStyle = '#ffffff';
+    const welcome = 'Welcome, warrior!';
+    this.ctx.fillText(welcome, (screenWidth * cellWidth - welcome.length * cellWidth) / 2, 20 * cellHeight);
+
+    // Prompt
+    this.ctx.fillStyle = '#ffff00';
+    const prompt = 'Enter your name:';
+    this.ctx.fillText(prompt, (screenWidth * cellWidth - prompt.length * cellWidth) / 2, 26 * cellHeight);
+
+    // Input box
+    const boxWidth = 16;
+    const boxX = (screenWidth / 2 - boxWidth / 2) * cellWidth;
+    const boxY = 29 * cellHeight;
+
+    this.ctx.fillStyle = '#333366';
+    this.ctx.fillRect(boxX, boxY, boxWidth * cellWidth, 3 * cellHeight);
+    this.ctx.strokeStyle = '#ffff00';
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeRect(boxX, boxY, boxWidth * cellWidth, 3 * cellHeight);
+
+    // Current input with cursor
+    this.ctx.fillStyle = '#00ff00';
+    this.ctx.font = `${cellHeight * 1.5}px monospace`;
+    const displayText = currentInput + (Math.floor(this.animTime * 2) % 2 === 0 ? '_' : ' ');
+    const textX = boxX + cellWidth;
+    this.ctx.fillText(displayText, textX, boxY + cellHeight * 2);
+
+    this.ctx.font = `${cellHeight}px monospace`;
+
+    // Instructions
+    this.ctx.fillStyle = '#888888';
+    const instructions = 'Type your name (max 12 characters)';
+    this.ctx.fillText(instructions, (screenWidth * cellWidth - instructions.length * cellWidth) / 2, 36 * cellHeight);
+
+    this.ctx.fillStyle = currentInput.length >= 1 ? '#00ff00' : '#666666';
+    const enterHint = currentInput.length >= 1 ? 'Press ENTER to continue' : 'Enter at least 1 character';
+    this.ctx.fillText(enterHint, (screenWidth * cellWidth - enterHint.length * cellWidth) / 2, 40 * cellHeight);
   }
 
   /** Draw pause screen overlay */
