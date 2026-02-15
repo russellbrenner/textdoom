@@ -1,5 +1,6 @@
 import type { GameConfig } from './types';
 import { Renderer } from './renderer';
+import { DoomRenderer } from './doom-renderer';
 import { Raycaster } from './raycaster';
 import { InputHandler } from './input';
 import { createPlayer, updatePlayer, resetPlayer } from './player';
@@ -9,6 +10,9 @@ import { createWeapon, updateWeapon } from './weapon';
 import { GoreManager } from './gore';
 import { networkManager } from './network';
 import { loadLeaderboard, recordGameSession, type Leaderboard } from './stats';
+
+// Renderer mode: 'webgl' for new 3D ASCII, 'canvas' for legacy
+const RENDERER_MODE: 'webgl' | 'canvas' = 'webgl';
 
 // Game configuration - HIGH RESOLUTION
 const CONFIG: GameConfig = {
@@ -45,7 +49,22 @@ let leaderboard: Leaderboard = loadLeaderboard();
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 if (!canvas) throw new Error('Canvas not found');
 
-const renderer = new Renderer(canvas, CONFIG);
+// Initialize renderers based on mode
+const canvasRenderer = new Renderer(canvas, CONFIG);
+let doomRenderer: DoomRenderer | null = null;
+
+// Try to initialize WebGL renderer
+if (RENDERER_MODE === 'webgl') {
+  try {
+    doomRenderer = new DoomRenderer(canvas, CONFIG);
+    console.log('WebGL 3D ASCII renderer initialized');
+  } catch (e) {
+    console.warn('WebGL not available, falling back to canvas:', e);
+  }
+}
+
+// Use the appropriate renderer
+const renderer = canvasRenderer; // Keep for compatibility
 const raycaster = new Raycaster(CONFIG);
 const input = new InputHandler();
 const spriteManager = new SpriteManager(CONFIG);
@@ -474,7 +493,12 @@ function gameLoop(timestamp: number): void {
     }
 
     // Draw menu with leaderboard
-    renderer.drawMainMenu(menuSelection, leaderboard);
+    if (doomRenderer) {
+      doomRenderer.update(deltaTime);
+      doomRenderer.drawMainMenu(menuSelection, leaderboard);
+    } else {
+      renderer.drawMainMenu(menuSelection, leaderboard);
+    }
     requestAnimationFrame(gameLoop);
     return;
   }
