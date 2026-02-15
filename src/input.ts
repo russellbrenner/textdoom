@@ -78,14 +78,24 @@ export class InputHandler {
   private onKeyDown(e: KeyboardEvent): void {
     this.updateKey(e.code, true);
 
-    // Handle weapon switching for Player 1 (1-9, 0, - keys for all weapons)
+    // Handle weapon switching for Player 1 (1-9, 0, - keys + numpad for all weapons)
     if (this.weapon1 && this.player1) {
+      // Number row
       if (e.code >= 'Digit1' && e.code <= 'Digit9') {
         const num = parseInt(e.code.slice(-1));
         switchWeaponByNumber(this.weapon1, num, this.player1);
       } else if (e.code === 'Digit0') {
         switchWeaponByNumber(this.weapon1, 10, this.player1);
       } else if (e.code === 'Minus') {
+        switchWeaponByNumber(this.weapon1, 11, this.player1);
+      }
+      // Numpad support
+      if (e.code >= 'Numpad1' && e.code <= 'Numpad9') {
+        const num = parseInt(e.code.slice(-1));
+        switchWeaponByNumber(this.weapon1, num, this.player1);
+      } else if (e.code === 'Numpad0') {
+        switchWeaponByNumber(this.weapon1, 10, this.player1);
+      } else if (e.code === 'NumpadSubtract') {
         switchWeaponByNumber(this.weapon1, 11, this.player1);
       }
     }
