@@ -948,52 +948,24 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  /** Apply post-processing effects */
+  /** Apply post-processing effects (minimal for clarity) */
   applyPostProcessing(): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
     const width = screenWidth * cellWidth;
     const height = screenHeight * cellHeight;
 
-    // CRT Scanlines
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-    for (let y = 0; y < height; y += 3) {
-      this.ctx.fillRect(0, y, width, 1);
-    }
-
-    // Vignette effect (darker corners/edges)
+    // Very subtle vignette only - keeps edges visible but adds atmosphere
     const gradient = this.ctx.createRadialGradient(
-      width / 2, height / 2, height * 0.3,
-      width / 2, height / 2, height * 0.8
+      width / 2, height / 2, height * 0.5,
+      width / 2, height / 2, height * 0.95
     );
     gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.1)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+    gradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.05)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, width, height);
 
-    // Subtle film grain (random noise pixels)
-    const grainIntensity = 0.03;
-    const grainSize = 4;
-    for (let i = 0; i < 50; i++) {
-      const gx = Math.floor(Math.random() * width);
-      const gy = Math.floor(Math.random() * height);
-      const brightness = Math.random() > 0.5 ? 255 : 0;
-      this.ctx.fillStyle = `rgba(${brightness}, ${brightness}, ${brightness}, ${grainIntensity})`;
-      this.ctx.fillRect(gx, gy, grainSize, grainSize);
-    }
-
-    // Chromatic aberration (subtle color shift at edges)
-    // Only apply to outer edges to avoid performance hit
-    const aberrationWidth = 2;
-    const aberrationAlpha = 0.1;
-
-    // Left edge - red shift
-    this.ctx.fillStyle = `rgba(255, 0, 0, ${aberrationAlpha})`;
-    this.ctx.fillRect(0, 0, aberrationWidth, height);
-
-    // Right edge - cyan shift
-    this.ctx.fillStyle = `rgba(0, 255, 255, ${aberrationAlpha})`;
-    this.ctx.fillRect(width - aberrationWidth, 0, aberrationWidth, height);
+    // No scanlines, no grain, no chromatic aberration - clarity first!
   }
 
   /** Apply color grading for atmosphere */
@@ -1114,8 +1086,8 @@ export class Renderer {
       const char = art[artY][artX];
       if (char === ' ') continue; // Transparent
 
-      // Apply distance fade
-      const brightness = Math.max(0.3, 1 - (distance / 12));
+      // Apply distance fade (less aggressive - enemies stay visible)
+      const brightness = Math.max(0.5, 1 - (distance / 15));
       const fadedColour = this.darkenColour(colour, brightness);
 
       this.ctx.fillStyle = fadedColour;
@@ -1226,9 +1198,9 @@ export class Renderer {
       this.ctx.fillText(`KILLS: ${killCount}`, (offsetX + screenWidth - 12) * cellWidth, (screenHeight - 1) * cellHeight);
     }
 
-    // Crosshair
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillText('+', (offsetX + screenWidth / 2) * cellWidth, (screenHeight / 2) * cellHeight);
+    // Crosshair - bright green for visibility
+    this.ctx.fillStyle = '#00ff00';
+    this.ctx.fillText('╬', (offsetX + screenWidth / 2) * cellWidth, (screenHeight / 2) * cellHeight);
 
     // Help hint (top right) - only in single player
     if (!this.splitScreen) {
@@ -1620,8 +1592,9 @@ export class Renderer {
       'W/S          Forward/Back',
       'A/D          Turn left/right',
       'Q/E          Strafe',
-      'SPACE        Fire weapon',
-      '1-4          Select weapon',
+      'SPACE/MOUSE  Fire weapon',
+      '1-8          Select weapon',
+      'SCROLL       Cycle weapons',
     ];
     for (const line of p1Controls) {
       this.ctx.fillText(line, 10 * cellWidth, y * cellHeight);
@@ -1640,7 +1613,7 @@ export class Renderer {
       '←/→          Turn left/right',
       ',/.          Strafe',
       'ENTER        Fire weapon',
-      '7-0          Select weapon',
+      'F1-F8        Select weapon',
     ];
     for (const line of p2Controls) {
       this.ctx.fillText(line, 10 * cellWidth, y * cellHeight);

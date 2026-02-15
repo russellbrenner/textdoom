@@ -78,20 +78,25 @@ export class InputHandler {
   private onKeyDown(e: KeyboardEvent): void {
     this.updateKey(e.code, true);
 
-    // Handle weapon switching for Player 1 (1-4 keys)
+    // Handle weapon switching for Player 1 (1-8 keys for all weapons)
     if (this.weapon1 && this.player1) {
-      if (e.code >= 'Digit1' && e.code <= 'Digit4') {
+      if (e.code >= 'Digit1' && e.code <= 'Digit8') {
         const num = parseInt(e.code.slice(-1));
         switchWeaponByNumber(this.weapon1, num, this.player1);
       }
     }
 
-    // Handle weapon switching for Player 2 (7-0 keys = weapons 1-4)
+    // Handle weapon switching for Player 2 (numpad or F-keys for weapons)
     if (this.weapon2 && this.player2) {
-      if (e.code === 'Digit7') switchWeaponByNumber(this.weapon2, 1, this.player2);
-      if (e.code === 'Digit8') switchWeaponByNumber(this.weapon2, 2, this.player2);
-      if (e.code === 'Digit9') switchWeaponByNumber(this.weapon2, 3, this.player2);
-      if (e.code === 'Digit0') switchWeaponByNumber(this.weapon2, 4, this.player2);
+      // F1-F8 for Player 2's weapons (avoids conflict with P1's number keys)
+      if (e.code === 'F1') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 1, this.player2); }
+      if (e.code === 'F2') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 2, this.player2); }
+      if (e.code === 'F3') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 3, this.player2); }
+      if (e.code === 'F4') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 4, this.player2); }
+      if (e.code === 'F5') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 5, this.player2); }
+      if (e.code === 'F6') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 6, this.player2); }
+      if (e.code === 'F7') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 7, this.player2); }
+      if (e.code === 'F8') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 8, this.player2); }
     }
   }
 
