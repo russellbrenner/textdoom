@@ -1,18 +1,59 @@
-import type { Player, InputState, GameConfig } from './types';
+import type { Player, InputState, GameConfig, PlayerId } from './types';
 import { isWall } from './map';
 
 const COLLISION_MARGIN = 0.2; // Distance to keep from walls
 
+// Spawn points for multiplayer
+const SPAWN_POINTS: Record<PlayerId, { x: number; y: number; dirX: number; dirY: number }> = {
+  1: { x: 2.5, y: 2.5, dirX: 1, dirY: 0 },      // Top-left, facing east
+  2: { x: 21.5, y: 21.5, dirX: -1, dirY: 0 },   // Bottom-right, facing west
+};
+
 /**
  * Create initial player state
- * Starts in the middle of the map facing east
+ * @param playerId Player number (1 or 2) for spawn position
  */
-export function createPlayer(): Player {
+export function createPlayer(playerId: PlayerId = 1): Player {
+  const spawn = SPAWN_POINTS[playerId];
   return {
-    pos: { x: 2.5, y: 2.5 },
-    dir: { x: 1, y: 0 },      // Facing east
-    plane: { x: 0, y: 0.66 }, // FOV ~66 degrees
+    pos: { x: spawn.x, y: spawn.y },
+    dir: { x: spawn.dirX, y: spawn.dirY },
+    plane: { x: 0, y: spawn.dirX * 0.66 }, // FOV ~66 degrees, perpendicular to dir
+    health: 100,
+    armor: 0,
+    ammo: {
+      bullets: 50,   // Pistol/chaingun
+      shells: 10,    // Shotgun (give some starting ammo in multiplayer)
+      rockets: 0,    // Rocket launcher
+      cells: 0,      // Plasma/BFG
+      fuel: 0,       // Flamethrower
+    },
+    isDead: false,
+    damageFlash: 0,
+    screenShake: 0,
   };
+}
+
+/**
+ * Reset player to initial state
+ */
+export function resetPlayer(player: Player, playerId: PlayerId = 1): void {
+  const spawn = SPAWN_POINTS[playerId];
+  player.pos = { x: spawn.x, y: spawn.y };
+  player.dir = { x: spawn.dirX, y: spawn.dirY };
+  player.plane = { x: 0, y: spawn.dirX * 0.66 };
+  player.health = 100;
+  player.armor = 0;
+  player.ammo = {
+    bullets: 50,
+    shells: 10,
+    rockets: 0,
+    cells: 0,
+    fuel: 0,
+  };
+  player.isDead = false;
+  player.damageFlash = 0;
+  player.screenShake = 0;
 }
 
 /**
@@ -25,6 +66,21 @@ export function updatePlayer(
   deltaTime: number,
   config: GameConfig
 ): void {
+  // Fade damage flash
+  if (player.damageFlash > 0) {
+    player.damageFlash = Math.max(0, player.damageFlash - deltaTime * 3);
+  }
+
+  // Fade screen shake
+  if (player.screenShake > 0) {
+    player.screenShake = Math.max(0, player.screenShake - deltaTime * 8);
+  }
+
+  // Dead players can't move
+  if (player.isDead) {
+    return;
+  }
+
   const moveSpeed = config.moveSpeed * deltaTime;
   const rotSpeed = config.rotSpeed * deltaTime;
 

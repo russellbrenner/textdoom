@@ -12,6 +12,15 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.12"
   },
-  "keywords": ["raycaster", "ascii", "doom", "wolfenstein", "game"],
-  "license": "MIT"
+  "keywords": [
+    "raycaster",
+    "ascii",
+    "doom",
+    "wolfenstein",
+    "game"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "peerjs": "^1.5.5"
+  }
 }

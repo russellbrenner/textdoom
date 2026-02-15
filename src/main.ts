@@ -2,24 +2,44 @@ import type { GameConfig } from './types';
 import { Renderer } from './renderer';
 import { Raycaster } from './raycaster';
 import { InputHandler } from './input';
-import { createPlayer, updatePlayer } from './player';
-import { getWallType } from './map';
+import { createPlayer, updatePlayer, resetPlayer } from './player';
+import { getWallType, SPRITE_SPAWNS, TORCH_LIGHTS } from './map';
+import { SpriteManager } from './sprites';
+import { createWeapon, updateWeapon } from './weapon';
+import { GoreManager } from './gore';
+import { networkManager } from './network';
+import { loadLeaderboard, recordGameSession, type Leaderboard } from './stats';
 
-// Game configuration
+// Game configuration - HIGH RESOLUTION
 const CONFIG: GameConfig = {
-  screenWidth: 120,       // Character columns
-  screenHeight: 40,       // Character rows
-  cellWidth: 8,           // Pixels per character width
-  cellHeight: 16,         // Pixels per character height
-  moveSpeed: 3.0,         // Units per second
-  rotSpeed: 2.0,          // Radians per second
+  screenWidth: 200,       // Character columns (was 120)
+  screenHeight: 60,       // Character rows (was 40)
+  cellWidth: 6,           // Pixels per character width (smaller = sharper)
+  cellHeight: 10,         // Pixels per character height
+  moveSpeed: 3.5,         // Units per second
+  rotSpeed: 2.5,          // Radians per second
 };
+
+// Game modes
+type GameMode = 'menu' | 'single' | 'multi' | 'online' | 'tutorial' | 'lobby_host' | 'lobby_join';
 
 // Game state
 let lastTime = 0;
 let fpsCounter = 0;
 let fpsTime = 0;
 let currentFps = 0;
+let gameMode: GameMode = 'menu';
+let menuSelection = 0;  // 0 = single, 1 = local multi, 2 = host, 3 = join
+
+// Online state
+let lobbyStatus = '';
+let joinCode = '';
+let networkUpdateTimer = 0;
+const NETWORK_UPDATE_RATE = 1 / 30; // 30 updates per second
+
+// Session tracking for leaderboard
+let sessionStartTime = 0;
+let leaderboard: Leaderboard = loadLeaderboard();
 
 // Initialise game components
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -28,14 +48,386 @@ if (!canvas) throw new Error('Canvas not found');
 const renderer = new Renderer(canvas, CONFIG);
 const raycaster = new Raycaster(CONFIG);
 const input = new InputHandler();
-const player = createPlayer();
+const spriteManager = new SpriteManager(CONFIG);
+const goreManager = new GoreManager(CONFIG);
+
+// Create players and weapons (will be reset when game starts)
+let player1 = createPlayer(1);
+let player2 = createPlayer(2);
+let weapon1 = createWeapon();
+let weapon2 = createWeapon();
+
+// Spawn initial sprites
+spriteManager.spawnSprites(SPRITE_SPAWNS);
+
+// Listen for special keys
+let restartPressed = false;
+let menuUpPressed = false;
+let menuDownPressed = false;
+let menuSelectPressed = false;
+
+window.addEventListener('keydown', (e) => {
+  if (gameMode === 'menu') {
+    // Menu navigation
+    if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      menuUpPressed = true;
+    }
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      menuDownPressed = true;
+    }
+    if (e.code === 'Space' || e.code === 'Enter') {
+      menuSelectPressed = true;
+    }
+    if (e.code === 'KeyH') {
+      gameMode = 'tutorial';
+    }
+  } else if (gameMode === 'lobby_join') {
+    // Handle code entry
+    if (e.code === 'Escape') {
+      gameMode = 'menu';
+      joinCode = '';
+      lobbyStatus = '';
+    } else if (e.code === 'Enter' && joinCode.length === 4) {
+      // Try to join
+      lobbyStatus = 'Connecting...';
+      networkManager.joinGame(
+        joinCode,
+        handleConnectionChange,
+        handleNetworkMessage
+      ).catch((err) => {
+        lobbyStatus = `Error: ${err}`;
+      });
+    } else if (e.code === 'Backspace') {
+      joinCode = joinCode.slice(0, -1);
+    } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key) && joinCode.length < 4) {
+      joinCode += e.key.toUpperCase();
+    }
+  } else if (gameMode === 'lobby_host') {
+    if (e.code === 'Escape') {
+      networkManager.disconnect();
+      gameMode = 'menu';
+      lobbyStatus = '';
+    }
+  } else if (gameMode === 'tutorial') {
+    // Exit tutorial back to menu or game
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyH' || e.code === 'Escape') {
+      gameMode = 'menu';
+      e.preventDefault();
+    }
+  } else {
+    // In-game controls
+    if (e.code === 'KeyR') {
+      const p1Dead = player1.isDead;
+      const p2Dead = (gameMode === 'multi' || gameMode === 'online') ? player2.isDead : true;
+      if (p1Dead || p2Dead) {
+        restartPressed = true;
+      }
+    }
+    if (e.code === 'KeyH') {
+      gameMode = 'tutorial';
+    }
+    if (e.code === 'Escape') {
+      endSession(); // Record stats before leaving
+      if (gameMode === 'online') {
+        networkManager.disconnect();
+      }
+      gameMode = 'menu';
+    }
+  }
+});
+
+/**
+ * Handle network connection changes
+ */
+function handleConnectionChange(connected: boolean, error?: string): void {
+  if (connected) {
+    lobbyStatus = 'Connected!';
+    // Start the game
+    setTimeout(() => {
+      startOnlineGame();
+    }, 500);
+  } else {
+    lobbyStatus = error || 'Disconnected';
+    if (gameMode === 'online') {
+      endSession(); // Record stats when disconnected
+      gameMode = 'menu';
+    }
+  }
+}
+
+/**
+ * Handle incoming network messages
+ */
+function handleNetworkMessage(message: any): void {
+  if (message.type === 'player_state') {
+    // Update remote player (player2 for host, player1's view of remote for guest)
+    networkManager.applyPlayerState(player2, weapon2, message.data);
+  } else if (message.type === 'weapon_fire') {
+    // Remote player fired
+    weapon2.isFiring = true;
+    setTimeout(() => { weapon2.isFiring = false; }, 100);
+  }
+}
+
+/**
+ * Start hosting an online game
+ */
+async function startHosting(): Promise<void> {
+  gameMode = 'lobby_host';
+  lobbyStatus = 'Creating room...';
+
+  try {
+    const code = await networkManager.hostGame(
+      handleConnectionChange,
+      handleNetworkMessage
+    );
+    lobbyStatus = `Room ready! Code: ${code}`;
+  } catch (err) {
+    lobbyStatus = `Error: ${err}`;
+  }
+}
+
+/**
+ * Start online game after connection
+ */
+function startOnlineGame(): void {
+  gameMode = 'online';
+
+  // Reset players - host is P1, guest is P2
+  player1 = createPlayer(1);
+  weapon1 = createWeapon();
+  player2 = createPlayer(2);
+  weapon2 = createWeapon();
+
+  renderer.setSplitScreen(true);
+
+  if (networkManager.getIsHost()) {
+    input.setWeaponContext(weapon1, player1);
+  } else {
+    // Guest controls P1 locally, sees host as P2
+    input.setWeaponContext(weapon1, player1);
+  }
+
+  // Reset sprites and gore
+  spriteManager.reset(SPRITE_SPAWNS);
+  goreManager.clear();
+
+  // Start session tracking
+  sessionStartTime = performance.now();
+}
+
+/**
+ * Start a new game
+ */
+function startGame(mode: 'single' | 'multi'): void {
+  gameMode = mode;
+
+  // Reset players
+  player1 = createPlayer(1);
+  weapon1 = createWeapon();
+
+  if (mode === 'multi') {
+    player2 = createPlayer(2);
+    weapon2 = createWeapon();
+    renderer.setSplitScreen(true);
+    input.setMultiplayerContext(weapon1, player1, weapon2, player2);
+  } else {
+    renderer.setSplitScreen(false);
+    input.setWeaponContext(weapon1, player1);
+  }
+
+  // Reset sprites and gore
+  spriteManager.reset(SPRITE_SPAWNS);
+  goreManager.clear();
+
+  // Start session tracking
+  sessionStartTime = performance.now();
+}
+
+/**
+ * Restart the current game
+ */
+function restartGame(): void {
+  resetPlayer(player1, 1);
+  Object.assign(weapon1, createWeapon());
+
+  if (gameMode === 'multi' || gameMode === 'online') {
+    resetPlayer(player2, 2);
+    Object.assign(weapon2, createWeapon());
+  }
+
+  spriteManager.reset(SPRITE_SPAWNS);
+  goreManager.clear();
+}
+
+/**
+ * End current session and record stats
+ */
+function endSession(): void {
+  if (sessionStartTime === 0) return; // No active session
+
+  const timePlayed = (performance.now() - sessionStartTime) / 1000; // Convert to seconds
+  const kills = spriteManager.getKillCount();
+
+  // Only record if player actually played (more than 5 seconds)
+  if (timePlayed > 5) {
+    const mode = gameMode === 'single' ? 'single' : gameMode === 'multi' ? 'multi' : 'online';
+    recordGameSession(kills, timePlayed, mode);
+    leaderboard = loadLeaderboard(); // Refresh leaderboard
+  }
+
+  sessionStartTime = 0;
+}
+
+/**
+ * Render single player view
+ */
+function renderSinglePlayerView(): void {
+  // Cast rays
+  const rays = raycaster.castRays(player1);
+
+  // Draw textured floor and ceiling
+  renderer.drawFloorCeiling(player1, rays);
+
+  // Render walls
+  for (let x = 0; x < rays.length; x++) {
+    const hit = rays[x];
+    const wallHeight = raycaster.calculateWallHeight(hit.distance);
+    const wallType = getWallType(hit.mapX, hit.mapY);
+    renderer.drawWallStrip(x, wallHeight, hit.distance, hit.side, wallType, hit.wallX);
+  }
+
+  // Draw blood decals on floor
+  renderer.drawBloodDecals(goreManager.getDecals(), player1);
+
+  // Render sprites
+  spriteManager.renderSprites(player1, renderer);
+
+  // Draw gore particles
+  renderer.drawGoreParticles(goreManager.getParticles(), player1);
+
+  // Draw weapon overlay
+  renderer.drawWeapon(weapon1);
+
+  // Draw HUD with weapon and kill count
+  renderer.drawHUD(player1, weapon1, spriteManager.getKillCount());
+}
+
+/**
+ * Render one player's view for split-screen
+ */
+function renderPlayerView(
+  playerId: 1 | 2,
+  player: typeof player1,
+  weapon: typeof weapon1
+): void {
+  // Set viewport for this player
+  renderer.setViewport(playerId);
+
+  // Clear this viewport
+  renderer.clear();
+
+  // Cast rays for this player's view (using half-width for split-screen)
+  const halfWidth = Math.floor(CONFIG.screenWidth / 2);
+  const rays = [];
+  for (let x = 0; x < halfWidth; x++) {
+    const cameraX = (2 * x) / halfWidth - 1;
+    const rayDirX = player.dir.x + player.plane.x * cameraX;
+    const rayDirY = player.dir.y + player.plane.y * cameraX;
+
+    // Cast single ray
+    let mapX = Math.floor(player.pos.x);
+    let mapY = Math.floor(player.pos.y);
+    const deltaDistX = rayDirX === 0 ? 1e30 : Math.abs(1 / rayDirX);
+    const deltaDistY = rayDirY === 0 ? 1e30 : Math.abs(1 / rayDirY);
+
+    let stepX: number, stepY: number;
+    let sideDistX: number, sideDistY: number;
+
+    if (rayDirX < 0) {
+      stepX = -1;
+      sideDistX = (player.pos.x - mapX) * deltaDistX;
+    } else {
+      stepX = 1;
+      sideDistX = (mapX + 1 - player.pos.x) * deltaDistX;
+    }
+    if (rayDirY < 0) {
+      stepY = -1;
+      sideDistY = (player.pos.y - mapY) * deltaDistY;
+    } else {
+      stepY = 1;
+      sideDistY = (mapY + 1 - player.pos.y) * deltaDistY;
+    }
+
+    let side: 0 | 1 = 0;
+    let hit = false;
+    while (!hit) {
+      if (sideDistX < sideDistY) {
+        sideDistX += deltaDistX;
+        mapX += stepX;
+        side = 0;
+      } else {
+        sideDistY += deltaDistY;
+        mapY += stepY;
+        side = 1;
+      }
+      if (mapX < 0 || mapX >= 24 || mapY < 0 || mapY >= 24) hit = true;
+      else if (getWallType(mapX, mapY) > 0) hit = true;
+    }
+
+    let perpWallDist = side === 0
+      ? sideDistX - deltaDistX
+      : sideDistY - deltaDistY;
+    if (perpWallDist < 0.01) perpWallDist = 0.01;
+
+    let wallX = side === 0
+      ? player.pos.y + perpWallDist * rayDirY
+      : player.pos.x + perpWallDist * rayDirX;
+    wallX -= Math.floor(wallX);
+
+    rays.push({
+      distance: perpWallDist,
+      side,
+      wallX,
+      mapX,
+      mapY,
+    });
+  }
+
+  // Draw textured floor and ceiling
+  renderer.drawFloorCeiling(player, rays);
+
+  // Render walls
+  const vp = renderer.getViewport();
+  for (let i = 0; i < rays.length; i++) {
+    const hit = rays[i];
+    const wallHeight = raycaster.calculateWallHeight(hit.distance);
+    const wallType = getWallType(hit.mapX, hit.mapY);
+    renderer.drawWallStrip(vp.x + i, wallHeight, hit.distance, hit.side, wallType, hit.wallX);
+  }
+
+  // Draw blood decals on floor
+  renderer.drawBloodDecals(goreManager.getDecals(), player);
+
+  // Render sprites
+  spriteManager.renderSprites(player, renderer);
+
+  // Draw gore particles
+  renderer.drawGoreParticles(goreManager.getParticles(), player);
+
+  // Draw weapon overlay
+  renderer.drawWeapon(weapon);
+
+  // Draw HUD with weapon
+  renderer.drawHUD(player, weapon, undefined, playerId);
+}
 
 /**
  * Main game loop
  */
 function gameLoop(timestamp: number): void {
   // Calculate delta time in seconds
-  const deltaTime = (timestamp - lastTime) / 1000;
+  const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.1); // Cap at 100ms
   lastTime = timestamp;
 
   // Update FPS counter
@@ -47,23 +439,149 @@ function gameLoop(timestamp: number): void {
     fpsTime = 0;
   }
 
-  // Update player based on input
-  updatePlayer(player, input.getState(), deltaTime, CONFIG);
+  // Update animation time (for menu background)
+  renderer.updateAnimation(deltaTime);
 
-  // Clear and render
-  renderer.clear();
+  // Handle different game modes
+  if (gameMode === 'menu') {
+    // Handle menu input
+    if (menuUpPressed) {
+      menuSelection = Math.max(0, menuSelection - 1);
+      menuUpPressed = false;
+    }
+    if (menuDownPressed) {
+      menuSelection = Math.min(3, menuSelection + 1);
+      menuDownPressed = false;
+    }
+    if (menuSelectPressed) {
+      menuSelectPressed = false;
+      switch (menuSelection) {
+        case 0:
+          startGame('single');
+          break;
+        case 1:
+          startGame('multi');
+          break;
+        case 2:
+          startHosting();
+          break;
+        case 3:
+          gameMode = 'lobby_join';
+          joinCode = '';
+          lobbyStatus = '';
+          break;
+      }
+    }
 
-  // Cast rays and render walls
-  const rays = raycaster.castRays(player);
-  for (let x = 0; x < rays.length; x++) {
-    const hit = rays[x];
-    const wallHeight = raycaster.calculateWallHeight(hit.distance);
-    const wallType = getWallType(hit.mapX, hit.mapY);
-    renderer.drawWallStrip(x, wallHeight, hit.distance, hit.side, wallType);
+    // Draw menu with leaderboard
+    renderer.drawMainMenu(menuSelection, leaderboard);
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  if (gameMode === 'lobby_host' || gameMode === 'lobby_join') {
+    renderer.drawOnlineLobby(
+      gameMode === 'lobby_host',
+      networkManager.getRoomCode(),
+      lobbyStatus,
+      joinCode
+    );
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  if (gameMode === 'tutorial') {
+    renderer.setSplitScreen(false);
+    renderer.drawTutorial();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // Handle restart
+  if (restartPressed) {
+    restartGame();
+    restartPressed = false;
+  }
+
+  // Get input states
+  const input1 = input.getState(1);
+
+  // Update player 1 (local player)
+  updatePlayer(player1, input1, deltaTime, CONFIG);
+  updateWeapon(weapon1, deltaTime, input1.fire, player1, spriteManager, goreManager, renderer);
+
+  // Handle online sync
+  if (gameMode === 'online' && networkManager.isConnected()) {
+    networkUpdateTimer += deltaTime;
+    if (networkUpdateTimer >= NETWORK_UPDATE_RATE) {
+      networkUpdateTimer = 0;
+      // Send our player state to remote
+      networkManager.sendPlayerState(player1, weapon1);
+    }
+  }
+
+  // Update player 2 if local multiplayer
+  if (gameMode === 'multi') {
+    const input2 = input.getState(2);
+    updatePlayer(player2, input2, deltaTime, CONFIG);
+    updateWeapon(weapon2, deltaTime, input2.fire, player2, spriteManager, goreManager, renderer);
+  }
+  // For online, player2 is updated via network messages
+
+  // Update sprites (AI) - uses player1 as primary target
+  spriteManager.update(player1, deltaTime);
+
+  // Check pickup collisions
+  spriteManager.checkPickups(player1);
+  if (gameMode === 'multi' || gameMode === 'online') {
+    spriteManager.checkPickups(player2);
+  }
+
+  // Update gore particles
+  goreManager.update(deltaTime);
+
+  // Apply screen shake
+  const maxShake = (gameMode === 'multi' || gameMode === 'online')
+    ? Math.max(player1.screenShake, player2.screenShake)
+    : player1.screenShake;
+  renderer.applyScreenShake(maxShake);
+
+  // Set up lighting
+  renderer.clearLights();
+  for (const torch of TORCH_LIGHTS) {
+    renderer.addLight(torch);
+  }
+
+  if (gameMode === 'single') {
+    // Single player rendering
+    renderer.clear();
+    renderSinglePlayerView();
+  } else {
+    // Multiplayer split-screen rendering (local or online)
+    const ctx = (renderer as any).ctx;
+    ctx.save();
+    ctx.translate((renderer as any).shakeOffset?.x || 0, (renderer as any).shakeOffset?.y || 0);
+
+    renderPlayerView(1, player1, weapon1);
+    renderPlayerView(2, player2, weapon2);
+
+    renderer.drawSplitDivider();
+    ctx.restore();
+
+    // Show network status for online games
+    if (gameMode === 'online') {
+      renderer.drawNetworkStatus(networkManager.getLatency(), networkManager.getIsHost());
+    }
   }
 
   // Draw FPS
   renderer.drawFPS(currentFps);
+
+  // Apply post-processing effects
+  renderer.applyPostProcessing();
+
+  // End frame
+  renderer.endFrame();
 
   // Continue loop
   requestAnimationFrame(gameLoop);
