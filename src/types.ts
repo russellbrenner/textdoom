@@ -53,7 +53,7 @@ export interface SpriteSpawn {
 }
 
 /** Weapon types */
-export type WeaponType = 'fist' | 'pistol' | 'shotgun' | 'chaingun' | 'rocket' | 'plasma' | 'bfg' | 'flamethrower';
+export type WeaponType = 'fist' | 'knife' | 'hammer' | 'axe' | 'pistol' | 'shotgun' | 'chaingun' | 'rocket' | 'plasma' | 'bfg' | 'flamethrower';
 
 /** Weapon state */
 export interface WeaponState {

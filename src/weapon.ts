@@ -25,6 +25,28 @@ const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
     ammoPerShot: 0,
     muzzleFlash: 0,
   },
+  knife: {
+    damage: 12,
+    cooldown: 0.25,
+    ammoType: 'none',
+    ammoPerShot: 0,
+    muzzleFlash: 0,
+  },
+  hammer: {
+    damage: 35,
+    cooldown: 0.8,
+    ammoType: 'none',
+    ammoPerShot: 0,
+    screenShake: 0.2,
+    muzzleFlash: 0,
+  },
+  axe: {
+    damage: 25,
+    cooldown: 0.5,
+    ammoType: 'none',
+    ammoPerShot: 0,
+    muzzleFlash: 0,
+  },
   pistol: {
     damage: 15,
     cooldown: 0.3,
@@ -83,8 +105,8 @@ const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
   },
 };
 
-// Weapon order for switching
-const WEAPON_ORDER: WeaponType[] = ['fist', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
+// Weapon order for switching (melee first, then ranged)
+const WEAPON_ORDER: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
 
 /**
  * Create initial weapon state
@@ -294,10 +316,10 @@ export function switchToPrevWeapon(weapon: WeaponState, player: Player): void {
 }
 
 /**
- * Switch weapon by number key (1-8)
+ * Switch weapon by number key (1-9, 0 for 10, - for 11)
  */
 export function switchWeaponByNumber(weapon: WeaponState, num: number, player: Player): boolean {
-  if (num < 1 || num > 8) return false;
+  if (num < 1 || num > WEAPON_ORDER.length) return false;
   const newWeapon = WEAPON_ORDER[num - 1];
   return switchWeapon(weapon, newWeapon, player);
 }

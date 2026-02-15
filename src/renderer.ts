@@ -24,6 +24,66 @@ const WEAPON_ART: Record<string, { idle: string[]; fired: string[] }> = {
       '            ',
     ],
   },
+  knife: {
+    idle: [
+      '      ▲     ',
+      '     ╱█╲    ',
+      '    ╱██╲    ',
+      '   ╱████╲   ',
+      '    ╔══╗    ',
+      '    ║██║    ',
+      '    ╚══╝    ',
+    ],
+    fired: [
+      '    \\▲/     ',
+      '     █      ',
+      '    ╱█╲     ',
+      '   ╱██╲     ',
+      '    ╔══╗    ',
+      '    ║██║    ',
+      '    ╚══╝    ',
+    ],
+  },
+  hammer: {
+    idle: [
+      ' ╔════════╗ ',
+      ' ║████████║ ',
+      ' ╚════╦═══╝ ',
+      '      ║     ',
+      '      ║     ',
+      '     ╔╩╗    ',
+      '     ╚═╝    ',
+    ],
+    fired: [
+      '            ',
+      ' ╔════════╗ ',
+      ' ║████████║ ',
+      ' ╚═══╦════╝ ',
+      '     ║      ',
+      '    ╔╩╗     ',
+      '    ╚═╝     ',
+    ],
+  },
+  axe: {
+    idle: [
+      '    ╔═══╗   ',
+      '   ╔╝███╚╗  ',
+      '   ║█████║  ',
+      '   ╚══╦══╝  ',
+      '      ║     ',
+      '     ╔╩╗    ',
+      '     ╚═╝    ',
+    ],
+    fired: [
+      '   \\═══/    ',
+      '   ╔═══╗    ',
+      '  ╔╝███╚╗   ',
+      '  ║█████║   ',
+      '  ╚══╦══╝   ',
+      '    ╔╩╗     ',
+      '    ╚═╝     ',
+    ],
+  },
   pistol: {
     idle: [
       '            ',
@@ -1702,7 +1762,7 @@ export class Renderer {
       'A/D          Turn left/right',
       'Q/E          Strafe',
       'SPACE/MOUSE  Fire weapon',
-      '1-8          Select weapon',
+      '1-9, 0, -    Select weapon',
       'SCROLL       Cycle weapons',
     ];
     for (const line of p1Controls) {
@@ -1722,7 +1782,7 @@ export class Renderer {
       '←/→          Turn left/right',
       ',/.          Strafe',
       'ENTER        Fire weapon',
-      'F1-F8        Select weapon',
+      'F1-F11       Select weapon',
     ];
     for (const line of p2Controls) {
       this.ctx.fillText(line, 10 * cellWidth, y * cellHeight);
@@ -1738,14 +1798,17 @@ export class Renderer {
 
     this.ctx.fillStyle = '#ffffff';
     const weapons = [
-      '1  Fist          No ammo needed',
-      '2  Pistol        Uses bullets (•)',
-      '3  Shotgun       Uses shells (▪)',
-      '4  Chaingun      Uses bullets (•)',
-      '5  Rocket        Uses rockets (◆)',
-      '6  Plasma        Uses cells (●)',
-      '7  BFG 9000      Uses cells (●)',
-      '8  Flamethrower  Uses fuel (▲)',
+      '1  Fist          No ammo',
+      '2  Knife         No ammo, fast',
+      '3  Hammer        No ammo, strong',
+      '4  Axe           No ammo, medium',
+      '5  Pistol        Bullets (•)',
+      '6  Shotgun       Shells (▪)',
+      '7  Chaingun      Bullets (•)',
+      '8  Rocket        Rockets (◆)',
+      '9  Plasma        Cells (●)',
+      '0  BFG 9000      Cells (●)',
+      '-  Flamethrower  Fuel (▲)',
     ];
     for (const line of weapons) {
       this.ctx.fillText(line, weaponsX * cellWidth, y * cellHeight);
