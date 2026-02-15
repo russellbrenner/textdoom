@@ -12,7 +12,8 @@ import { networkManager } from './network';
 import { loadLeaderboard, recordGameSession, type Leaderboard } from './stats';
 
 // Renderer mode: 'webgl' for new 3D ASCII, 'canvas' for legacy
-const RENDERER_MODE: 'webgl' | 'canvas' = 'webgl';
+// Using canvas for now as it's more stable and readable
+const RENDERER_MODE = 'canvas' as 'webgl' | 'canvas';
 
 // Game configuration - HIGH RESOLUTION
 const CONFIG: GameConfig = {

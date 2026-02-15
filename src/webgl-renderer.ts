@@ -249,15 +249,15 @@ export class WebGLRenderer {
   // Animation
   private time: number = 0;
 
-  // Post-processing defaults
+  // Post-processing defaults - reduced for clarity
   private postProcess: PostProcessSettings = {
-    bloomIntensity: 0.3,
-    scanlineIntensity: 0.2,
-    vignetteIntensity: 0.4,
-    chromaticAberration: 0.2,
+    bloomIntensity: 0.1,       // Subtle glow only
+    scanlineIntensity: 0,      // Disabled - too distracting
+    vignetteIntensity: 0.2,    // Light vignette
+    chromaticAberration: 0,    // Disabled - blurs text
     screenShake: 0,
     damageFlash: [0, 0, 0],
-    crtCurvature: 8,
+    crtCurvature: 0,           // Disabled - distorts view
   };
 
   // Instance data
