@@ -563,6 +563,10 @@ function gameLoop(timestamp: number): void {
   // Get input states
   const input1 = input.getState(1);
 
+  // Update movement state for weapon bob
+  const isMoving = input1.forward || input1.backward || input1.strafeLeft || input1.strafeRight;
+  renderer.setMoving(isMoving);
+
   // Update player 1 (local player)
   updatePlayer(player1, input1, deltaTime, CONFIG);
   updateWeapon(weapon1, deltaTime, input1.fire, player1, spriteManager, goreManager, renderer);

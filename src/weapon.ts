@@ -193,39 +193,50 @@ export function updateWeapon(
           const hitSprite = spriteManager.getSpriteInDirectionWithRange(player, spreadAngle, range);
           if (hitSprite) {
             const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
-            if (killed && goreManager) {
-              // Extra fiery death
-              goreManager.spawnKillGore(hitSprite.pos, player.pos, true);
+            // Show hit marker feedback
+            if (renderer) renderer.showHitMarker();
+            if (killed) {
+              if (goreManager) goreManager.spawnKillGore(hitSprite.pos, player.pos, true);
+              if (renderer) renderer.showKillMessage(hitSprite.type);
             }
           }
         }
       } else if (stats.pellets) {
         // Shotgun spread - multiple pellets
+        let hitCount = 0;
         for (let i = 0; i < stats.pellets; i++) {
           const spreadAngle = (Math.random() - 0.5) * 0.15; // ~8 degree spread
           const hitSprite = spriteManager.getSpriteInDirection(player, spreadAngle);
           if (hitSprite) {
             const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
-            if (killed && goreManager) {
-              // Extra gore for shotgun kills
-              goreManager.spawnKillGore(hitSprite.pos, player.pos, true);
+            hitCount++;
+            if (killed) {
+              if (goreManager) goreManager.spawnKillGore(hitSprite.pos, player.pos, true);
+              if (renderer) renderer.showKillMessage(hitSprite.type);
             }
           }
         }
+        // Show hit marker if any pellets hit
+        if (hitCount > 0 && renderer) renderer.showHitMarker();
       } else {
         // Single shot weapons
         const hitSprite = spriteManager.getSpriteAtCenter(player);
         if (hitSprite) {
           const killed = spriteManager.damageSprite(hitSprite, stats.damage, player, goreManager);
+          // Show hit marker feedback
+          if (renderer) renderer.showHitMarker();
 
           // Splash damage for rockets/BFG
           if (stats.splash) {
             spriteManager.applySplashDamage(hitSprite.pos, stats.splash, stats.damage * 0.5, player, goreManager);
           }
 
-          if (killed && goreManager) {
-            const overkill = stats.damage > 50;
-            goreManager.spawnKillGore(hitSprite.pos, player.pos, overkill);
+          if (killed) {
+            if (goreManager) {
+              const overkill = stats.damage > 50;
+              goreManager.spawnKillGore(hitSprite.pos, player.pos, overkill);
+            }
+            if (renderer) renderer.showKillMessage(hitSprite.type);
           }
         }
       }

@@ -570,6 +570,19 @@ export class SpriteManager {
           distance
         );
       }
+
+      // Draw health bar for enemies (only when damaged)
+      if (isEnemy(sprite.type) && sprite.state !== 'dead') {
+        const maxHealth = ENEMY_STATS[sprite.type]?.health || 100;
+        renderer.drawSpriteHealthBar(
+          screenX,
+          startY,
+          spriteWidth,
+          sprite.health,
+          maxHealth,
+          distance
+        );
+      }
     }
   }
 

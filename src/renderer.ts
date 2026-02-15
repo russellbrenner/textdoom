@@ -704,6 +704,12 @@ export class Renderer {
   private splitScreen: boolean = false;
   private currentViewport: { x: number; width: number } = { x: 0, width: 0 };
 
+  // Combat feedback effects
+  private hitMarker: { timer: number } = { timer: 0 };
+  private killMessage: { text: string; timer: number; colour: string } = { text: '', timer: 0, colour: '#ffffff' };
+  private weaponBobPhase: number = 0;
+  private isMoving: boolean = false;
+
   constructor(canvas: HTMLCanvasElement, config: GameConfig) {
     this.canvas = canvas;
     this.config = config;
@@ -757,6 +763,38 @@ export class Renderer {
     this.animTime += deltaTime;
     // Decay muzzle flash
     this.muzzleFlash = Math.max(0, this.muzzleFlash - deltaTime * 8);
+    // Decay hit marker
+    this.hitMarker.timer = Math.max(0, this.hitMarker.timer - deltaTime);
+    // Decay kill message
+    this.killMessage.timer = Math.max(0, this.killMessage.timer - deltaTime);
+    // Update weapon bob phase when moving
+    if (this.isMoving) {
+      this.weaponBobPhase += deltaTime * 10;
+    }
+  }
+
+  /** Show hit marker (call when bullet hits enemy) */
+  showHitMarker(): void {
+    this.hitMarker.timer = 0.15; // Show for 150ms
+  }
+
+  /** Show kill message (call when enemy dies) */
+  showKillMessage(enemyType: string): void {
+    const colours: Record<string, string> = {
+      imp: '#ff6600',
+      demon: '#cc3366',
+      cacodemon: '#ff0000',
+      baron: '#44ff44',
+      cyberdemon: '#888899',
+    };
+    this.killMessage.text = `KILLED ${enemyType.toUpperCase()}`;
+    this.killMessage.timer = 1.5; // Show for 1.5s
+    this.killMessage.colour = colours[enemyType] || '#ffffff';
+  }
+
+  /** Set moving state for weapon bob */
+  setMoving(moving: boolean): void {
+    this.isMoving = moving;
   }
 
   /** Get current animation time */
@@ -1108,7 +1146,10 @@ export class Renderer {
 
     const weaponWidth = art[0].length;
     const startX = offsetX + Math.floor((screenWidth - weaponWidth) / 2);
-    const startY = screenHeight - art.length;
+
+    // Weapon bob when moving (subtle up/down motion)
+    const bobOffset = this.isMoving ? Math.sin(this.weaponBobPhase) * 0.5 : 0;
+    const startY = screenHeight - art.length + bobOffset;
 
     this.ctx.fillStyle = '#cccccc';
     for (let y = 0; y < art.length; y++) {
@@ -1198,9 +1239,34 @@ export class Renderer {
       this.ctx.fillText(`KILLS: ${killCount}`, (offsetX + screenWidth - 12) * cellWidth, (screenHeight - 1) * cellHeight);
     }
 
+    // Hit marker (red X that flashes on successful hit)
+    if (this.hitMarker.timer > 0) {
+      const alpha = this.hitMarker.timer / 0.15;
+      this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+      this.ctx.font = `${cellHeight * 1.5}px monospace`;
+      this.ctx.fillText('╳', (offsetX + screenWidth / 2 - 0.5) * cellWidth, (screenHeight / 2 - 1) * cellHeight);
+      this.ctx.font = `${cellHeight}px monospace`;
+    }
+
     // Crosshair - bright green for visibility
     this.ctx.fillStyle = '#00ff00';
     this.ctx.fillText('╬', (offsetX + screenWidth / 2) * cellWidth, (screenHeight / 2) * cellHeight);
+
+    // Kill message (shows enemy type when killed)
+    if (this.killMessage.timer > 0) {
+      const alpha = Math.min(1, this.killMessage.timer);
+      this.ctx.fillStyle = this.killMessage.colour.replace(')', `, ${alpha})`).replace('rgb', 'rgba').replace('#', '');
+      // Convert hex to rgba
+      const hex = this.killMessage.colour;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      this.ctx.font = `${cellHeight * 1.5}px monospace`;
+      const textWidth = this.killMessage.text.length * cellWidth * 0.9;
+      this.ctx.fillText(this.killMessage.text, (offsetX + screenWidth / 2) * cellWidth - textWidth / 2, 8 * cellHeight);
+      this.ctx.font = `${cellHeight}px monospace`;
+    }
 
     // Help hint (top right) - only in single player
     if (!this.splitScreen) {
@@ -1728,6 +1794,46 @@ export class Renderer {
     this.ctx.fillStyle = '#ffff00';
     const prompt = '>>> Press H or SPACE to start playing <<<';
     this.ctx.fillText(prompt, (screenWidth * cellWidth - prompt.length * cellWidth) / 2, y * cellHeight);
+  }
+
+  /** Draw health bar above a sprite (only shows when damaged) */
+  drawSpriteHealthBar(
+    screenX: number,
+    screenY: number,
+    spriteWidth: number,
+    currentHealth: number,
+    maxHealth: number,
+    distance: number
+  ): void {
+    // Only show health bar if enemy is damaged
+    if (currentHealth >= maxHealth) return;
+    // Don't show for dead enemies
+    if (currentHealth <= 0) return;
+    // Don't show if too far away
+    if (distance > 8) return;
+
+    const { cellWidth, cellHeight } = this.config;
+    const healthPercent = currentHealth / maxHealth;
+    const barWidth = Math.min(8, Math.max(3, Math.floor(spriteWidth / 3)));
+    const barX = screenX - Math.floor(barWidth / 2);
+    const barY = screenY - 2;
+
+    if (barY < 0) return;
+
+    // Background
+    this.ctx.fillStyle = '#333333';
+    this.ctx.fillRect(barX * cellWidth, barY * cellHeight, barWidth * cellWidth, cellHeight * 0.6);
+
+    // Health bar (red to green)
+    const r = Math.floor(255 * (1 - healthPercent));
+    const g = Math.floor(255 * healthPercent);
+    this.ctx.fillStyle = `rgb(${r}, ${g}, 0)`;
+    this.ctx.fillRect(
+      barX * cellWidth,
+      barY * cellHeight,
+      barWidth * cellWidth * healthPercent,
+      cellHeight * 0.6
+    );
   }
 
   /** Get z-buffer for sprite rendering */
