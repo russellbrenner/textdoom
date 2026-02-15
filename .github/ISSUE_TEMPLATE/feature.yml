@@ -1,0 +1,44 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        Describe what you'd like added to TextDoom.
+
+        **Tip:** Mention `@claude` in comments to request AI assistance with implementation.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What feature do you want?
+      placeholder: "Add a chainsaw weapon that..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why?
+      description: What problem does this solve?
+      placeholder: "Melee combat feels too slow because..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Weapons
+        - Enemies
+        - Rendering
+        - Controls
+        - Multiplayer
+        - UI/HUD
+        - Other
+    validations:
+      required: true
