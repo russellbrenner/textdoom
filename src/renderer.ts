@@ -736,20 +736,20 @@ export const SPRITE_ART: Record<string, Record<string, string[]>> = {
 };
 
 export const SPRITE_COLOURS: Record<string, string> = {
-  imp: '#ff6600',       // Orange
-  demon: '#cc3366',     // Pink
-  cacodemon: '#ff0000', // Bright red
-  baron: '#44ff44',     // Hell green
-  cyberdemon: '#888899',// Metal gray
-  health: '#00ff00',
-  armor: '#0066ff',
-  ammo_bullets: '#ffcc00',
-  ammo_shells: '#ff8800',
-  ammo_rockets: '#ff4400',
-  ammo_cells: '#00ffff',
-  ammo_fuel: '#ff6600', // Orange fuel canister
-  corpse: '#442222',
-  gib: '#880000',
+  imp: '#ee8833',       // Warm orange — common grunt
+  demon: '#cc5544',     // Rust red — heavy
+  cacodemon: '#dd4444', // Bright red — flying
+  baron: '#88cc44',     // Toxic green — elite
+  cyberdemon: '#aabbcc',// Brushed steel — boss
+  health: '#44dd66',
+  armor: '#4488dd',
+  ammo_bullets: '#ffcc44',
+  ammo_shells: '#ff9933',
+  ammo_rockets: '#ff6633',
+  ammo_cells: '#44ddee',
+  ammo_fuel: '#ff8833',
+  corpse: '#554433',
+  gib: '#884422',
 };
 
 export class Renderer {
@@ -842,13 +842,13 @@ export class Renderer {
   /** Show kill message (call when enemy dies) */
   showKillMessage(enemyType: string): void {
     const colours: Record<string, string> = {
-      imp: '#ff6600',
-      demon: '#cc3366',
-      cacodemon: '#ff0000',
-      baron: '#44ff44',
-      cyberdemon: '#888899',
+      imp: '#ee8833',
+      demon: '#cc5544',
+      cacodemon: '#dd4444',
+      baron: '#88cc44',
+      cyberdemon: '#aabbcc',
     };
-    this.killMessage.text = `KILLED ${enemyType.toUpperCase()}`;
+    this.killMessage.text = `ELIMINATED ${enemyType.toUpperCase()}`;
     this.killMessage.timer = 1.5; // Show for 1.5s
     this.killMessage.colour = colours[enemyType] || '#ffffff';
   }
@@ -979,7 +979,7 @@ export class Renderer {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
     const midX = Math.floor(screenWidth / 2) * cellWidth;
 
-    this.ctx.fillStyle = '#444444';
+    this.ctx.fillStyle = '#ff880066';
     this.ctx.fillRect(midX - 1, 0, 3, screenHeight * cellHeight);
   }
 
@@ -1047,24 +1047,37 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  /** Apply post-processing effects (minimal for clarity) */
+  /** Apply post-processing effects — The Finals warm bloom aesthetic */
   applyPostProcessing(): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
     const width = screenWidth * cellWidth;
     const height = screenHeight * cellHeight;
 
-    // Very subtle vignette only - keeps edges visible but adds atmosphere
-    const gradient = this.ctx.createRadialGradient(
-      width / 2, height / 2, height * 0.5,
-      width / 2, height / 2, height * 0.95
-    );
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.05)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-    this.ctx.fillStyle = gradient;
+    // Warm colour grading — subtle orange/gold tint
+    this.ctx.fillStyle = 'rgba(255, 180, 80, 0.04)';
     this.ctx.fillRect(0, 0, width, height);
 
-    // No scanlines, no grain, no chromatic aberration - clarity first!
+    // Subtle bloom glow — bright center falloff
+    const bloomGradient = this.ctx.createRadialGradient(
+      width / 2, height * 0.4, 0,
+      width / 2, height * 0.4, height * 0.8
+    );
+    bloomGradient.addColorStop(0, 'rgba(255, 220, 160, 0.03)');
+    bloomGradient.addColorStop(0.5, 'rgba(255, 200, 120, 0.01)');
+    bloomGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    this.ctx.fillStyle = bloomGradient;
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Soft vignette — less harsh than DOOM style
+    const vignette = this.ctx.createRadialGradient(
+      width / 2, height / 2, height * 0.55,
+      width / 2, height / 2, height * 0.95
+    );
+    vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    vignette.addColorStop(0.7, 'rgba(0, 0, 0, 0.03)');
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
+    this.ctx.fillStyle = vignette;
+    this.ctx.fillRect(0, 0, width, height);
   }
 
   /** Apply color grading for atmosphere */
@@ -1212,16 +1225,16 @@ export class Renderer {
     const bobOffset = this.isMoving ? Math.sin(this.weaponBobPhase) * 0.5 : 0;
     const startY = screenHeight - art.length + bobOffset;
 
-    this.ctx.fillStyle = '#cccccc';
+    this.ctx.fillStyle = '#c8b8a8';
     for (let y = 0; y < art.length; y++) {
       for (let x = 0; x < art[y].length; x++) {
         const char = art[y][x];
         if (char !== ' ') {
-          // Muzzle flash colour
+          // Muzzle flash colour — warm orange
           if (weapon.isFiring && y === 0 && (char === '\\' || char === '/' || char === '█')) {
-            this.ctx.fillStyle = '#ffff00';
+            this.ctx.fillStyle = '#ffaa33';
           } else {
-            this.ctx.fillStyle = '#cccccc';
+            this.ctx.fillStyle = '#c8b8a8';
           }
           this.ctx.fillText(char, (startX + x) * cellWidth, (startY + y) * cellHeight);
         }
@@ -1236,14 +1249,17 @@ export class Renderer {
     const screenWidth = vp.width;
     const offsetX = vp.x;
 
-    // HUD background bar
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // HUD background bar — clean semi-transparent panel
+    this.ctx.fillStyle = 'rgba(10, 8, 5, 0.6)';
     this.ctx.fillRect(offsetX * cellWidth, (screenHeight - 3) * cellHeight, screenWidth * cellWidth, 3 * cellHeight);
+    // Gold accent line at top of HUD
+    this.ctx.fillStyle = 'rgba(255, 180, 60, 0.4)';
+    this.ctx.fillRect(offsetX * cellWidth, (screenHeight - 3) * cellHeight, screenWidth * cellWidth, 1);
 
     // Player label for split-screen
     if (this.splitScreen && playerId) {
       const playerLabel = playerId === 1 ? 'P1' : 'P2';
-      const playerColour = playerId === 1 ? '#00ff00' : '#00ffff';
+      const playerColour = playerId === 1 ? '#ffaa33' : '#44bbdd';
       this.ctx.fillStyle = playerColour;
       this.ctx.fillText(playerLabel, (offsetX + 1) * cellWidth, 1 * cellHeight);
     }
@@ -1254,14 +1270,14 @@ export class Renderer {
     const healthEmpty = healthBarWidth - healthFilled;
     const healthBar = '█'.repeat(Math.max(0, healthFilled)) + '░'.repeat(Math.max(0, healthEmpty));
 
-    // Health colour based on amount
-    let healthColour = '#00ff00';
-    if (player.health <= 25) healthColour = '#ff0000';
-    else if (player.health <= 50) healthColour = '#ffff00';
+    // Health colour — warm tones (green → gold → red)
+    let healthColour = '#44dd66';
+    if (player.health <= 25) healthColour = '#dd3333';
+    else if (player.health <= 50) healthColour = '#ffaa33';
 
     // Draw health
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillText('HP:', (offsetX + 1) * cellWidth, (screenHeight - 2) * cellHeight);
+    this.ctx.fillStyle = '#ddccbb';
+    this.ctx.fillText('HP', (offsetX + 1) * cellWidth, (screenHeight - 2) * cellHeight);
     this.ctx.fillStyle = healthColour;
     this.ctx.fillText(healthBar, (offsetX + 4) * cellWidth, (screenHeight - 2) * cellHeight);
     this.ctx.fillStyle = '#ffffff';
@@ -1270,71 +1286,70 @@ export class Renderer {
     // Weapon name and ammo (bottom row) - compact for split-screen
     if (weapon) {
       const weaponName = weapon.type.toUpperCase().slice(0, 4);
-      this.ctx.fillStyle = '#ffff00';
+      this.ctx.fillStyle = '#ffcc44';
       this.ctx.fillText(`[${weaponName}]`, (offsetX + 1) * cellWidth, (screenHeight - 1) * cellHeight);
 
-      // Low ammo thresholds - flash red when below
+      // Low ammo thresholds - flash when below
       const lowAmmo = { bullets: 20, shells: 5, rockets: 2, cells: 20, fuel: 20 };
       const flashOn = Math.sin(this.animTime * 8) > 0;
 
       // Helper to get ammo colour (flashes red when low)
       const getAmmoColour = (amount: number, threshold: number, baseColour: string): string => {
-        if (amount <= threshold && flashOn) return '#ff0000';
-        if (amount <= threshold) return '#880000';
+        if (amount <= threshold && flashOn) return '#dd3333';
+        if (amount <= threshold) return '#882222';
         return baseColour;
       };
 
       if (this.splitScreen) {
         // Compact ammo display for split-screen
-        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc00');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc44');
         this.ctx.fillText(`•${player.ammo.bullets}`, (offsetX + 9) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff8800');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff9933');
         this.ctx.fillText(`▪${player.ammo.shells}`, (offsetX + 14) * cellWidth, (screenHeight - 1) * cellHeight);
       } else {
         // Full ammo display for single player
-        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc00');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.bullets, lowAmmo.bullets, '#ffcc44');
         this.ctx.fillText(`•${player.ammo.bullets}`, (offsetX + 15) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff8800');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.shells, lowAmmo.shells, '#ff9933');
         this.ctx.fillText(`▪${player.ammo.shells}`, (offsetX + 22) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = getAmmoColour(player.ammo.rockets, lowAmmo.rockets, '#ff4400');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.rockets, lowAmmo.rockets, '#ff6633');
         this.ctx.fillText(`◆${player.ammo.rockets}`, (offsetX + 28) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = getAmmoColour(player.ammo.cells, lowAmmo.cells, '#00ffff');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.cells, lowAmmo.cells, '#44ddee');
         this.ctx.fillText(`●${player.ammo.cells}`, (offsetX + 34) * cellWidth, (screenHeight - 1) * cellHeight);
-        this.ctx.fillStyle = getAmmoColour(player.ammo.fuel, lowAmmo.fuel, '#ff6600');
+        this.ctx.fillStyle = getAmmoColour(player.ammo.fuel, lowAmmo.fuel, '#ff8833');
         this.ctx.fillText(`▲${player.ammo.fuel}`, (offsetX + 40) * cellWidth, (screenHeight - 1) * cellHeight);
       }
     }
 
-    // Kill count (top area for split-screen)
+    // Kill count — game show elimination counter
     if (killCount !== undefined && !this.splitScreen) {
-      this.ctx.fillStyle = '#ff4444';
-      this.ctx.fillText(`KILLS: ${killCount}`, (offsetX + screenWidth - 12) * cellWidth, (screenHeight - 1) * cellHeight);
+      this.ctx.fillStyle = '#ffaa33';
+      this.ctx.fillText(`ELIMS: ${killCount}`, (offsetX + screenWidth - 12) * cellWidth, (screenHeight - 1) * cellHeight);
     }
 
     // Credits display (single player only, top-right area)
     if (!this.splitScreen) {
       const shopState = loadShopState();
-      this.ctx.fillStyle = '#ffdd00';
+      this.ctx.fillStyle = '#ffcc44';
       this.ctx.fillText(`¤ ${shopState.credits}`, (offsetX + screenWidth - 10) * cellWidth, 3 * cellHeight);
     }
 
-    // Hit marker (red X that flashes on successful hit)
+    // Hit marker — white X (cleaner than red, Finals style)
     if (this.hitMarker.timer > 0) {
       const alpha = this.hitMarker.timer / 0.15;
-      this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+      this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
       this.ctx.font = `${cellHeight * 1.5}px monospace`;
       this.ctx.fillText('╳', (offsetX + screenWidth / 2 - 0.5) * cellWidth, (screenHeight / 2 - 1) * cellHeight);
       this.ctx.font = `${cellHeight}px monospace`;
     }
 
-    // Crosshair - bright green for visibility
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillText('╬', (offsetX + screenWidth / 2) * cellWidth, (screenHeight / 2) * cellHeight);
+    // Crosshair — clean white dot style
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillText('◎', (offsetX + screenWidth / 2) * cellWidth, (screenHeight / 2) * cellHeight);
 
-    // Kill message (shows enemy type when killed)
+    // Kill message (shows enemy type when eliminated)
     if (this.killMessage.timer > 0) {
       const alpha = Math.min(1, this.killMessage.timer);
-      this.ctx.fillStyle = this.killMessage.colour.replace(')', `, ${alpha})`).replace('rgb', 'rgba').replace('#', '');
       // Convert hex to rgba
       const hex = this.killMessage.colour;
       const r = parseInt(hex.slice(1, 3), 16);
@@ -1349,7 +1364,7 @@ export class Renderer {
 
     // Help hint (top right) - only in single player
     if (!this.splitScreen) {
-      this.ctx.fillStyle = '#666666';
+      this.ctx.fillStyle = '#776655';
       this.ctx.fillText('[H] Help', (offsetX + screenWidth - 10) * cellWidth, 1 * cellHeight);
     }
 
@@ -1399,19 +1414,20 @@ export class Renderer {
       }
     }
 
-    // Death screen
+    // Death screen — The Finals style elimination
     if (player.isDead) {
-      this.ctx.fillStyle = 'rgba(128, 0, 0, 0.7)';
+      this.ctx.fillStyle = 'rgba(40, 10, 0, 0.75)';
       this.ctx.fillRect(offsetX * cellWidth, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
-      this.ctx.fillStyle = '#ff0000';
+      this.ctx.fillStyle = '#ff6633';
       this.ctx.font = `${cellHeight * 2}px monospace`;
-      const text = 'YOU DIED';
+      const text = 'ELIMINATED';
       const textWidth = text.length * cellWidth * 2;
       this.ctx.fillText(text, (screenWidth * cellWidth - textWidth) / 2, (screenHeight / 2) * cellHeight);
 
       this.ctx.font = `${cellHeight}px monospace`;
-      const subtext = 'Press R to restart';
+      this.ctx.fillStyle = '#ddccbb';
+      const subtext = 'Press R to respawn';
       const subtextWidth = subtext.length * cellWidth;
       this.ctx.fillText(subtext, (screenWidth * cellWidth - subtextWidth) / 2, (screenHeight / 2 + 3) * cellHeight);
     }
@@ -1501,31 +1517,35 @@ export class Renderer {
 
   /** Draw FPS counter */
   drawFPS(fps: number): void {
-    this.ctx.fillStyle = '#00ff00';
+    this.ctx.fillStyle = '#887766';
     this.ctx.fillText(`FPS: ${Math.round(fps)}`, 5, 5);
   }
 
-  /** Draw main menu / mode select screen */
+  /** Draw main menu / mode select screen — The Finals game-show aesthetic */
   drawMainMenu(selectedOption: number, leaderboard?: Leaderboard): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Dark background
-    this.ctx.fillStyle = '#000000';
+    // Dark warm background
+    this.ctx.fillStyle = '#0a0806';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
-    // Animated starfield background
-    this.ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 50; i++) {
-      const x = ((i * 137 + Math.floor(this.animTime * 20)) % screenWidth);
-      const y = ((i * 89) % screenHeight);
-      const char = i % 3 === 0 ? '★' : '·';
-      this.ctx.fillStyle = i % 5 === 0 ? '#ffffff' : '#666688';
+    // Animated floating particles (warm, slow-moving)
+    for (let i = 0; i < 40; i++) {
+      const x = ((i * 137 + Math.floor(this.animTime * 8)) % screenWidth);
+      const y = ((i * 89 + Math.floor(this.animTime * 3)) % screenHeight);
+      const char = i % 4 === 0 ? '◆' : '·';
+      this.ctx.fillStyle = i % 7 === 0 ? '#ff880033' : '#44332222';
       this.ctx.fillText(char, x * cellWidth, y * cellHeight);
     }
 
-    // Title - big ASCII art
-    const titleY = 8;
-    this.ctx.fillStyle = '#ff0000';
+    // Gold accent lines at top and bottom
+    this.ctx.fillStyle = '#ff8800';
+    this.ctx.fillRect(0, 3 * cellHeight, screenWidth * cellWidth, 1);
+    this.ctx.fillRect(0, (screenHeight - 3) * cellHeight, screenWidth * cellWidth, 1);
+
+    // Title - big gold text
+    const titleY = 6;
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 3}px monospace`;
     const title = 'TEXT DOOM';
     const titleWidth = title.length * cellWidth * 1.8;
@@ -1533,62 +1553,68 @@ export class Renderer {
 
     this.ctx.font = `${cellHeight}px monospace`;
 
-    // Subtitle
-    this.ctx.fillStyle = '#888888';
-    const subtitle = 'An ASCII Raycaster';
+    // Subtitle — game-show tagline
+    this.ctx.fillStyle = '#aa8866';
+    const subtitle = 'WELCOME TO THE ARENA';
     this.ctx.fillText(subtitle, (screenWidth * cellWidth - subtitle.length * cellWidth) / 2, (titleY + 5) * cellHeight);
 
     // Menu options
-    const menuY = 20;
+    const menuY = 18;
     const options = [
-      { label: '1 PLAYER', desc: 'Solo demon slaying' },
-      { label: '2 PLAYERS LOCAL', desc: 'Split-screen co-op' },
-      { label: 'HOST ONLINE', desc: 'Create a game for a friend to join' },
-      { label: 'JOIN ONLINE', desc: 'Join a friend\'s game with a code' },
-      { label: 'ARMOURY', desc: 'Upgrade your weapons with credits' },
+      { label: 'QUICK PLAY', desc: 'Solo elimination round' },
+      { label: 'LOCAL DUO', desc: 'Split-screen action' },
+      { label: 'HOST MATCH', desc: 'Create a match for a friend' },
+      { label: 'JOIN MATCH', desc: 'Join with a room code' },
+      { label: 'ARMOURY', desc: 'Upgrade weapons with credits' },
     ];
 
     for (let i = 0; i < options.length; i++) {
       const isSelected = i === selectedOption;
       const y = menuY + i * 3;
 
-      // Selection indicator
+      // Selection highlight bar
       if (isSelected) {
-        this.ctx.fillStyle = '#ff4444';
-        this.ctx.fillText('>>>', (screenWidth / 2 - 14) * cellWidth, y * cellHeight);
-        this.ctx.fillText('<<<', (screenWidth / 2 + 11) * cellWidth, y * cellHeight);
+        this.ctx.fillStyle = 'rgba(255, 136, 0, 0.12)';
+        this.ctx.fillRect(
+          (screenWidth / 2 - 16) * cellWidth,
+          (y - 0.3) * cellHeight,
+          32 * cellWidth,
+          cellHeight * 1.6
+        );
+        this.ctx.fillStyle = '#ff8800';
+        this.ctx.fillText('▸', (screenWidth / 2 - 14) * cellWidth, y * cellHeight);
       }
 
       // Option label
-      this.ctx.fillStyle = isSelected ? '#ffff00' : '#888888';
+      this.ctx.fillStyle = isSelected ? '#ffcc44' : '#776655';
       const label = options[i].label;
       this.ctx.fillText(label, (screenWidth * cellWidth - label.length * cellWidth) / 2, y * cellHeight);
 
       // Description
-      this.ctx.fillStyle = isSelected ? '#aaaaaa' : '#555555';
+      this.ctx.fillStyle = isSelected ? '#aa9988' : '#443322';
       const desc = options[i].desc;
       this.ctx.fillText(desc, (screenWidth * cellWidth - desc.length * cellWidth) / 2, (y + 1) * cellHeight);
     }
 
     // Instructions
-    const instrY = 40;
-    this.ctx.fillStyle = '#666666';
-    this.ctx.fillText('Use ↑↓ or W/S to select', (screenWidth * cellWidth - 24 * cellWidth) / 2, instrY * cellHeight);
-    this.ctx.fillText('Press SPACE or ENTER to start', (screenWidth * cellWidth - 30 * cellWidth) / 2, (instrY + 2) * cellHeight);
+    const instrY = 38;
+    this.ctx.fillStyle = '#665544';
+    this.ctx.fillText('Use W/S to select', (screenWidth * cellWidth - 18 * cellWidth) / 2, instrY * cellHeight);
+    this.ctx.fillText('ENTER to start', (screenWidth * cellWidth - 14 * cellWidth) / 2, (instrY + 2) * cellHeight);
 
-    // Credits
-    this.ctx.fillStyle = '#444444';
-    this.ctx.fillText('Press H for controls help', (screenWidth * cellWidth - 26 * cellWidth) / 2, (screenHeight - 4) * cellHeight);
+    // Footer
+    this.ctx.fillStyle = '#332211';
+    this.ctx.fillText('Press H for controls', (screenWidth * cellWidth - 20 * cellWidth) / 2, (screenHeight - 4) * cellHeight);
 
-    // Leaderboards (left and right panels) - always show
+    // Leaderboards (left and right panels)
     const panelWidth = 28;
     const leftX = 8;
     const rightX = screenWidth - panelWidth - 8;
-    const panelY = 18;
+    const panelY = 16;
 
-    // Left panel: TOP KILLS
-    this.ctx.fillStyle = '#ff6600';
-    this.ctx.fillText('══ TOP KILLS ══', leftX * cellWidth, panelY * cellHeight);
+    // Left panel: TOP ELIMINATIONS
+    this.ctx.fillStyle = '#ff8833';
+    this.ctx.fillText('── TOP ELIMS ──', leftX * cellWidth, panelY * cellHeight);
 
     if (leaderboard && leaderboard.topKills.length > 0) {
       for (let i = 0; i < Math.min(5, leaderboard.topKills.length); i++) {
@@ -1596,19 +1622,18 @@ export class Renderer {
         const rank = `${i + 1}.`;
         const name = (entry.username || 'Player').slice(0, 8).padEnd(8);
         const kills = `${entry.kills}`;
-        this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
-        this.ctx.fillText(`${rank} ${name} ${kills} kills`, leftX * cellWidth, (panelY + 2 + i) * cellHeight);
+        this.ctx.fillStyle = i === 0 ? '#ffcc44' : '#998877';
+        this.ctx.fillText(`${rank} ${name} ${kills} elims`, leftX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
     } else {
-      this.ctx.fillStyle = '#555555';
-      this.ctx.fillText('No games yet', leftX * cellWidth, (panelY + 2) * cellHeight);
-      this.ctx.fillText('Play to get on', leftX * cellWidth, (panelY + 3) * cellHeight);
-      this.ctx.fillText('the leaderboard!', leftX * cellWidth, (panelY + 4) * cellHeight);
+      this.ctx.fillStyle = '#443322';
+      this.ctx.fillText('No matches yet', leftX * cellWidth, (panelY + 2) * cellHeight);
+      this.ctx.fillText('Play to rank!', leftX * cellWidth, (panelY + 3) * cellHeight);
     }
 
-    // Right panel: LONGEST GAMES
-    this.ctx.fillStyle = '#00ccff';
-    this.ctx.fillText('══ LONGEST GAMES ══', rightX * cellWidth, panelY * cellHeight);
+    // Right panel: LONGEST MATCHES
+    this.ctx.fillStyle = '#44aacc';
+    this.ctx.fillText('── BEST TIME ──', rightX * cellWidth, panelY * cellHeight);
 
     if (leaderboard && leaderboard.topTime.length > 0) {
       for (let i = 0; i < Math.min(5, leaderboard.topTime.length); i++) {
@@ -1616,73 +1641,73 @@ export class Renderer {
         const rank = `${i + 1}.`;
         const name = (entry.username || 'Player').slice(0, 8).padEnd(8);
         const time = formatTime(entry.timePlayed);
-        this.ctx.fillStyle = i === 0 ? '#ffff00' : '#aaaaaa';
+        this.ctx.fillStyle = i === 0 ? '#ffcc44' : '#998877';
         this.ctx.fillText(`${rank} ${name} ${time}`, rightX * cellWidth, (panelY + 2 + i) * cellHeight);
       }
     } else {
-      this.ctx.fillStyle = '#555555';
-      this.ctx.fillText('No games yet', rightX * cellWidth, (panelY + 2) * cellHeight);
-      this.ctx.fillText('Survive longer', rightX * cellWidth, (panelY + 3) * cellHeight);
-      this.ctx.fillText('to rank here!', rightX * cellWidth, (panelY + 4) * cellHeight);
+      this.ctx.fillStyle = '#443322';
+      this.ctx.fillText('No matches yet', rightX * cellWidth, (panelY + 2) * cellHeight);
+      this.ctx.fillText('Survive longer!', rightX * cellWidth, (panelY + 3) * cellHeight);
     }
 
     // Total stats at bottom of panels
-    this.ctx.fillStyle = '#666666';
+    this.ctx.fillStyle = '#554433';
     const totalY = panelY + 8;
     const totalKills = leaderboard?.totalKills ?? 0;
     const gamesPlayed = leaderboard?.gamesPlayed ?? 0;
     const totalTime = leaderboard?.totalTimePlayed ?? 0;
-    this.ctx.fillText(`Total: ${totalKills} kills`, leftX * cellWidth, totalY * cellHeight);
-    this.ctx.fillText(`Games: ${gamesPlayed}`, rightX * cellWidth, totalY * cellHeight);
-    this.ctx.fillText(`Time: ${formatTime(totalTime)}`, (rightX + 12) * cellWidth, totalY * cellHeight);
+    this.ctx.fillText(`Total: ${totalKills} elims`, leftX * cellWidth, totalY * cellHeight);
+    this.ctx.fillText(`Matches: ${gamesPlayed}`, rightX * cellWidth, totalY * cellHeight);
+    this.ctx.fillText(`Time: ${formatTime(totalTime)}`, (rightX + 14) * cellWidth, totalY * cellHeight);
   }
 
-  /** Draw online lobby screen (host waiting or join code entry) */
+  /** Draw online lobby screen — The Finals matchmaking style */
   drawOnlineLobby(isHost: boolean, roomCode: string, status: string, inputCode: string): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Dark background
-    this.ctx.fillStyle = '#000000';
+    // Dark warm background
+    this.ctx.fillStyle = '#0a0806';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
-    // Animated background
+    // Subtle animated particles
     for (let i = 0; i < 30; i++) {
       const x = ((i * 137 + Math.floor(this.animTime * 10)) % screenWidth);
       const y = ((i * 89) % screenHeight);
-      this.ctx.fillStyle = '#222244';
+      this.ctx.fillStyle = '#332a22';
       this.ctx.fillText('·', x * cellWidth, y * cellHeight);
     }
 
+    // Gold accent lines
+    this.ctx.fillStyle = '#ff8800';
+    this.ctx.fillRect(0, 3 * cellHeight, screenWidth * cellWidth, 1);
+
     // Title
-    this.ctx.fillStyle = '#00ffff';
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 2}px monospace`;
-    const title = isHost ? 'HOSTING GAME' : 'JOIN GAME';
+    const title = isHost ? 'HOSTING MATCH' : 'JOIN MATCH';
     this.ctx.fillText(title, (screenWidth * cellWidth - title.length * cellWidth) / 2, 10 * cellHeight);
 
     this.ctx.font = `${cellHeight}px monospace`;
 
     if (isHost) {
       // Show room code for host
-      this.ctx.fillStyle = '#ffffff';
-      const shareText = 'Share this code with your friend:';
+      this.ctx.fillStyle = '#ddccbb';
+      const shareText = 'Share this code with your teammate:';
       this.ctx.fillText(shareText, (screenWidth * cellWidth - shareText.length * cellWidth) / 2, 18 * cellHeight);
 
-      // Big room code in a box
+      // Room code in styled box
       const codeX = (screenWidth / 2 - 8) * cellWidth;
       const codeY = 22 * cellHeight;
 
-      // Draw box around code
-      this.ctx.fillStyle = '#333366';
+      this.ctx.fillStyle = '#1a1510';
       this.ctx.fillRect(codeX, codeY, 16 * cellWidth, 5 * cellHeight);
-      this.ctx.strokeStyle = '#ffff00';
+      this.ctx.strokeStyle = '#ff8800';
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(codeX, codeY, 16 * cellWidth, 5 * cellHeight);
 
-      // Room code - large and centered
-      this.ctx.fillStyle = '#ffff00';
+      this.ctx.fillStyle = '#ffcc44';
       this.ctx.font = `bold ${cellHeight * 3}px monospace`;
       const codeDisplay = roomCode || '----';
-      // Measure text for proper centering
       const textMetrics = this.ctx.measureText(codeDisplay);
       const textX = codeX + (16 * cellWidth - textMetrics.width) / 2;
       this.ctx.fillText(codeDisplay, textX, codeY + cellHeight * 3.5);
@@ -1691,22 +1716,22 @@ export class Renderer {
 
       // Waiting animation
       const dots = '.'.repeat(Math.floor(this.animTime * 2) % 4);
-      this.ctx.fillStyle = '#888888';
-      const waitText = `Waiting for player to join${dots}`;
+      this.ctx.fillStyle = '#aa8866';
+      const waitText = `Searching for contestant${dots}`;
       this.ctx.fillText(waitText, (screenWidth * cellWidth - waitText.length * cellWidth) / 2, 32 * cellHeight);
     } else {
       // Join code entry
-      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillStyle = '#ddccbb';
       this.ctx.fillText('Enter the 4-letter room code:', (screenWidth * cellWidth - 30 * cellWidth) / 2, 20 * cellHeight);
 
       // Code input box
       const boxX = (screenWidth / 2 - 6) * cellWidth;
       const boxY = 25 * cellHeight;
-      this.ctx.fillStyle = '#333333';
+      this.ctx.fillStyle = '#1a1510';
       this.ctx.fillRect(boxX, boxY, 12 * cellWidth, 3 * cellHeight);
 
       // Entered code
-      this.ctx.fillStyle = '#00ff00';
+      this.ctx.fillStyle = '#ffcc44';
       this.ctx.font = `${cellHeight * 2}px monospace`;
       const displayCode = inputCode.padEnd(4, '_');
       this.ctx.fillText(displayCode, boxX + cellWidth, boxY + cellHeight * 0.5);
@@ -1714,16 +1739,16 @@ export class Renderer {
       this.ctx.font = `${cellHeight}px monospace`;
 
       // Instructions
-      this.ctx.fillStyle = '#888888';
+      this.ctx.fillStyle = '#887766';
       this.ctx.fillText('Type the code, then press ENTER', (screenWidth * cellWidth - 32 * cellWidth) / 2, 32 * cellHeight);
     }
 
     // Status message
-    this.ctx.fillStyle = status.includes('Error') || status.includes('failed') ? '#ff4444' : '#00ff00';
+    this.ctx.fillStyle = status.includes('Error') || status.includes('failed') ? '#dd3333' : '#44dd66';
     this.ctx.fillText(status, (screenWidth * cellWidth - status.length * cellWidth) / 2, 40 * cellHeight);
 
     // Back instruction
-    this.ctx.fillStyle = '#666666';
+    this.ctx.fillStyle = '#554433';
     this.ctx.fillText('Press ESC to go back', (screenWidth * cellWidth - 20 * cellWidth) / 2, (screenHeight - 4) * cellHeight);
   }
 
@@ -1735,37 +1760,37 @@ export class Renderer {
     const indicator = isHost ? 'HOST' : 'GUEST';
     const pingText = `${latency}ms`;
 
-    this.ctx.fillStyle = latency < 100 ? '#00ff00' : latency < 200 ? '#ffff00' : '#ff0000';
+    this.ctx.fillStyle = latency < 100 ? '#44dd66' : latency < 200 ? '#ffaa33' : '#dd3333';
     this.ctx.fillText(`${indicator} | ${pingText}`, (screenWidth - 15) * cellWidth, 2 * cellHeight);
   }
 
-  /** Draw tutorial overlay */
+  /** Draw tutorial overlay — The Finals style */
   drawTutorial(): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Semi-transparent background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    // Dark warm overlay
+    this.ctx.fillStyle = 'rgba(10, 8, 5, 0.9)';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
     // Title
-    this.ctx.fillStyle = '#ff4444';
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 2}px monospace`;
-    const title = '╔═══ TEXT DOOM ═══╗';
+    const title = '── CONTESTANT GUIDE ──';
     this.ctx.fillText(title, (screenWidth * cellWidth - title.length * cellWidth) / 2, 3 * cellHeight);
 
     this.ctx.font = `${cellHeight}px monospace`;
 
-    // Subtitle - 2 PLAYER MODE
-    this.ctx.fillStyle = '#00ffff';
-    this.ctx.fillText('═══ 2 PLAYER SPLIT-SCREEN ═══', 30 * cellWidth, 5 * cellHeight);
+    // Subtitle
+    this.ctx.fillStyle = '#44aacc';
+    this.ctx.fillText('── SPLIT-SCREEN DUO ──', 30 * cellWidth, 5 * cellHeight);
 
     // Player 1 section
     let y = 7;
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillText('═══ PLAYER 1 (LEFT) ═══', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffaa33';
+    this.ctx.fillText('── PLAYER 1 (LEFT) ──', 10 * cellWidth, y * cellHeight);
     y += 2;
 
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = '#ddccbb';
     const p1Controls = [
       'W/S          Forward/Back',
       'A/D          Turn left/right',
@@ -1781,11 +1806,11 @@ export class Renderer {
 
     // Player 2 section
     y += 1;
-    this.ctx.fillStyle = '#00ffff';
-    this.ctx.fillText('═══ PLAYER 2 (RIGHT) ═══', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#44bbdd';
+    this.ctx.fillText('── PLAYER 2 (RIGHT) ──', 10 * cellWidth, y * cellHeight);
     y += 2;
 
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = '#ddccbb';
     const p2Controls = [
       '↑/↓          Forward/Back',
       '←/→          Turn left/right',
@@ -1801,11 +1826,11 @@ export class Renderer {
     // Weapons section
     y = 7;
     const weaponsX = 55;
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.fillText('═══ WEAPONS ═══', weaponsX * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffcc44';
+    this.ctx.fillText('── WEAPONS ──', weaponsX * cellWidth, y * cellHeight);
     y += 2;
 
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = '#ddccbb';
     const weapons = [
       '1  Fist          No ammo',
       '2  Knife         No ammo, fast',
@@ -1826,39 +1851,39 @@ export class Renderer {
 
     // Enemies section
     y += 1;
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.fillText('═══ ENEMIES ═══', weaponsX * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffcc44';
+    this.ctx.fillText('── HOSTILES ──', weaponsX * cellWidth, y * cellHeight);
     y += 2;
 
     const enemies = [
-      { name: 'Imp', colour: '#ff6600', desc: 'Fast, weak melee' },
-      { name: 'Demon', colour: '#cc3366', desc: 'Slow, strong melee' },
-      { name: 'Cacodemon', colour: '#ff0000', desc: 'Flying, shoots lightning' },
-      { name: 'Baron', colour: '#44ff44', desc: 'Tough, melee + fireballs' },
-      { name: 'Cyberdemon', colour: '#888899', desc: 'BOSS! Rockets + summons' },
+      { name: 'Imp', colour: '#ee8833', desc: 'Fast, weak melee' },
+      { name: 'Demon', colour: '#cc5544', desc: 'Slow, strong melee' },
+      { name: 'Cacodemon', colour: '#dd4444', desc: 'Flying, shoots lightning' },
+      { name: 'Baron', colour: '#88cc44', desc: 'Tough, melee + fireballs' },
+      { name: 'Cyberdemon', colour: '#aabbcc', desc: 'BOSS! Rockets + summons' },
     ];
     for (const enemy of enemies) {
       this.ctx.fillStyle = enemy.colour;
       this.ctx.fillText(enemy.name.padEnd(12), weaponsX * cellWidth, y * cellHeight);
-      this.ctx.fillStyle = '#888888';
+      this.ctx.fillStyle = '#887766';
       this.ctx.fillText(enemy.desc, (weaponsX + 12) * cellWidth, y * cellHeight);
       y++;
     }
 
     // Pickups section
     y = 22;
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.fillText('═══ PICKUPS ═══', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffcc44';
+    this.ctx.fillText('── PICKUPS ──', 10 * cellWidth, y * cellHeight);
     y += 2;
 
     const pickups = [
-      { char: '+', colour: '#00ff00', desc: 'Health (+25 HP)' },
-      { char: '█', colour: '#0066ff', desc: 'Armor (+25 AR)' },
-      { char: '█', colour: '#ffcc00', desc: 'Bullets' },
-      { char: '█', colour: '#ff8800', desc: 'Shells' },
-      { char: '█', colour: '#ff4400', desc: 'Rockets' },
-      { char: '█', colour: '#00ffff', desc: 'Cells' },
-      { char: '█', colour: '#ff6600', desc: 'Fuel' },
+      { char: '+', colour: '#44dd66', desc: 'Health (+25 HP)' },
+      { char: '█', colour: '#4488dd', desc: 'Armor (+25 AR)' },
+      { char: '█', colour: '#ffcc44', desc: 'Bullets' },
+      { char: '█', colour: '#ff9933', desc: 'Shells' },
+      { char: '█', colour: '#ff6633', desc: 'Rockets' },
+      { char: '█', colour: '#44ddee', desc: 'Cells' },
+      { char: '█', colour: '#ff8833', desc: 'Fuel' },
     ];
 
     let px = 10;
@@ -1876,28 +1901,28 @@ export class Renderer {
 
     // Other controls
     y = 28;
-    this.ctx.fillStyle = '#ffff00';
-    this.ctx.fillText('═══ OTHER ═══', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffcc44';
+    this.ctx.fillText('── OTHER ──', 10 * cellWidth, y * cellHeight);
     y += 2;
 
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillText('R            Restart (when dead)', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ddccbb';
+    this.ctx.fillText('R            Respawn (when eliminated)', 10 * cellWidth, y * cellHeight);
     y++;
-    this.ctx.fillText('H            Toggle this help', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillText('H            Toggle this guide', 10 * cellWidth, y * cellHeight);
 
     // Tips
     y += 3;
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.fillText('═══ TIPS ═══', 10 * cellWidth, y * cellHeight);
+    this.ctx.fillStyle = '#ffaa33';
+    this.ctx.fillText('── PRO TIPS ──', 10 * cellWidth, y * cellHeight);
     y += 2;
 
-    this.ctx.fillStyle = '#aaaaaa';
+    this.ctx.fillStyle = '#998877';
     const tips = [
-      '• Keep moving! Standing still makes you an easy target.',
+      '• Keep moving! Standing still gets you eliminated.',
       '• Use the shotgun for close combat, chaingun for sustained fire.',
       '• The flamethrower is devastating at short range.',
-      '• Watch your ammo - fist always works but does low damage.',
-      '• Pick up health and armor to survive longer.',
+      '• Watch your ammo — fist always works but does low damage.',
+      '• Grab health and armour to stay in the match.',
     ];
     for (const tip of tips) {
       this.ctx.fillText(tip, 10 * cellWidth, y * cellHeight);
@@ -1906,8 +1931,8 @@ export class Renderer {
 
     // Press any key prompt
     y = screenHeight - 4;
-    this.ctx.fillStyle = '#ffff00';
-    const prompt = '>>> Press H or SPACE to start playing <<<';
+    this.ctx.fillStyle = '#ffcc44';
+    const prompt = '▸ Press H or SPACE to enter the arena ◂';
     this.ctx.fillText(prompt, (screenWidth * cellWidth - prompt.length * cellWidth) / 2, y * cellHeight);
   }
 
@@ -1951,26 +1976,28 @@ export class Renderer {
     );
   }
 
-  /** Draw username entry screen */
+  /** Draw username entry screen — The Finals contestant registration */
   drawUsernameEntry(currentInput: string): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Dark background with stars
-    this.ctx.fillStyle = '#000000';
+    // Dark warm background
+    this.ctx.fillStyle = '#0a0806';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
-    // Animated starfield
-    this.ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 50; i++) {
-      const x = ((i * 137 + Math.floor(this.animTime * 20)) % screenWidth);
-      const y = ((i * 89) % screenHeight);
-      const char = i % 3 === 0 ? '★' : '·';
-      this.ctx.fillStyle = i % 5 === 0 ? '#ffffff' : '#666688';
-      this.ctx.fillText(char, x * cellWidth, y * cellHeight);
+    // Subtle particles
+    for (let i = 0; i < 40; i++) {
+      const x = ((i * 137 + Math.floor(this.animTime * 8)) % screenWidth);
+      const y = ((i * 89 + Math.floor(this.animTime * 3)) % screenHeight);
+      this.ctx.fillStyle = i % 7 === 0 ? '#ff880022' : '#33221111';
+      this.ctx.fillText('·', x * cellWidth, y * cellHeight);
     }
 
+    // Gold accent line
+    this.ctx.fillStyle = '#ff8800';
+    this.ctx.fillRect(0, 3 * cellHeight, screenWidth * cellWidth, 1);
+
     // Title
-    this.ctx.fillStyle = '#ff0000';
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 3}px monospace`;
     const title = 'TEXT DOOM';
     const titleWidth = title.length * cellWidth * 1.8;
@@ -1979,13 +2006,13 @@ export class Renderer {
     this.ctx.font = `${cellHeight}px monospace`;
 
     // Welcome message
-    this.ctx.fillStyle = '#ffffff';
-    const welcome = 'Welcome, warrior!';
+    this.ctx.fillStyle = '#ddccbb';
+    const welcome = 'Welcome, contestant!';
     this.ctx.fillText(welcome, (screenWidth * cellWidth - welcome.length * cellWidth) / 2, 20 * cellHeight);
 
     // Prompt
-    this.ctx.fillStyle = '#ffff00';
-    const prompt = 'Enter your name:';
+    this.ctx.fillStyle = '#ffcc44';
+    const prompt = 'Enter your callsign:';
     this.ctx.fillText(prompt, (screenWidth * cellWidth - prompt.length * cellWidth) / 2, 26 * cellHeight);
 
     // Input box
@@ -1993,14 +2020,14 @@ export class Renderer {
     const boxX = (screenWidth / 2 - boxWidth / 2) * cellWidth;
     const boxY = 29 * cellHeight;
 
-    this.ctx.fillStyle = '#333366';
+    this.ctx.fillStyle = '#1a1510';
     this.ctx.fillRect(boxX, boxY, boxWidth * cellWidth, 3 * cellHeight);
-    this.ctx.strokeStyle = '#ffff00';
+    this.ctx.strokeStyle = '#ff8800';
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(boxX, boxY, boxWidth * cellWidth, 3 * cellHeight);
 
     // Current input with cursor
-    this.ctx.fillStyle = '#00ff00';
+    this.ctx.fillStyle = '#ffcc44';
     this.ctx.font = `${cellHeight * 1.5}px monospace`;
     const displayText = currentInput + (Math.floor(this.animTime * 2) % 2 === 0 ? '_' : ' ');
     const textX = boxX + cellWidth;
@@ -2009,33 +2036,37 @@ export class Renderer {
     this.ctx.font = `${cellHeight}px monospace`;
 
     // Instructions
-    this.ctx.fillStyle = '#888888';
-    const instructions = 'Type your name (max 12 characters)';
+    this.ctx.fillStyle = '#887766';
+    const instructions = 'Max 12 characters';
     this.ctx.fillText(instructions, (screenWidth * cellWidth - instructions.length * cellWidth) / 2, 36 * cellHeight);
 
-    this.ctx.fillStyle = currentInput.length >= 1 ? '#00ff00' : '#666666';
-    const enterHint = currentInput.length >= 1 ? 'Press ENTER to continue' : 'Enter at least 1 character';
+    this.ctx.fillStyle = currentInput.length >= 1 ? '#44dd66' : '#554433';
+    const enterHint = currentInput.length >= 1 ? 'Press ENTER to register' : 'Enter at least 1 character';
     this.ctx.fillText(enterHint, (screenWidth * cellWidth - enterHint.length * cellWidth) / 2, 40 * cellHeight);
   }
 
-  /** Draw shop/armoury screen */
+  /** Draw shop/armoury screen — The Finals loadout style */
   drawShop(shopState: ShopState, selectedWeapon: number): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Dark background
-    this.ctx.fillStyle = '#000000';
+    // Dark warm background
+    this.ctx.fillStyle = '#0a0806';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
-    // Animated background (subtle)
+    // Subtle animated particles
     for (let i = 0; i < 30; i++) {
       const x = ((i * 137 + Math.floor(this.animTime * 10)) % screenWidth);
       const y = ((i * 89) % screenHeight);
-      this.ctx.fillStyle = '#111122';
+      this.ctx.fillStyle = '#221a12';
       this.ctx.fillText('·', x * cellWidth, y * cellHeight);
     }
 
+    // Gold accent line
+    this.ctx.fillStyle = '#ff8800';
+    this.ctx.fillRect(0, 3 * cellHeight, screenWidth * cellWidth, 1);
+
     // Title
-    this.ctx.fillStyle = '#ffcc00';
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 2.5}px monospace`;
     const title = 'ARMOURY';
     const titleWidth = title.length * cellWidth * 1.5;
@@ -2044,7 +2075,7 @@ export class Renderer {
     this.ctx.font = `${cellHeight}px monospace`;
 
     // Credit balance
-    this.ctx.fillStyle = '#ffdd00';
+    this.ctx.fillStyle = '#ffcc44';
     const creditsText = `Credits: ${shopState.credits} ¤`;
     this.ctx.fillText(creditsText, (screenWidth * cellWidth - creditsText.length * cellWidth) / 2, 10 * cellHeight);
 
@@ -2057,7 +2088,7 @@ export class Renderer {
     const startY = 14;
 
     // Column headers
-    this.ctx.fillStyle = '#888888';
+    this.ctx.fillStyle = '#aa8866';
     this.ctx.fillText('MELEE', leftX * cellWidth, startY * cellHeight);
     this.ctx.fillText('RANGED', rightX * cellWidth, startY * cellHeight);
 
@@ -2093,7 +2124,7 @@ export class Renderer {
     }
 
     // Instructions
-    this.ctx.fillStyle = '#666666';
+    this.ctx.fillStyle = '#665544';
     const instructions = 'Press 1-9, 0, - to upgrade | ESC to exit';
     this.ctx.fillText(instructions, (screenWidth * cellWidth - instructions.length * cellWidth) / 2, (screenHeight - 4) * cellHeight);
   }
@@ -2121,35 +2152,35 @@ export class Renderer {
 
     // Selection indicator
     if (isSelected) {
-      this.ctx.fillStyle = '#ffff00';
-      this.ctx.fillText('>', (x - 2) * cellWidth, y * cellHeight);
+      this.ctx.fillStyle = '#ff8800';
+      this.ctx.fillText('▸', (x - 2) * cellWidth, y * cellHeight);
     }
 
     // Key number
-    this.ctx.fillStyle = '#888888';
+    this.ctx.fillStyle = '#776655';
     this.ctx.fillText(`${key}.`, x * cellWidth, y * cellHeight);
 
     // Weapon name
-    this.ctx.fillStyle = isSelected ? '#ffffff' : '#aaaaaa';
+    this.ctx.fillStyle = isSelected ? '#ffcc44' : '#998877';
     const name = weapon.toUpperCase().padEnd(12);
     this.ctx.fillText(name, (x + 3) * cellWidth, y * cellHeight);
 
     // Level indicator
     const levelText = `Lv ${level}/${MAX_UPGRADE_LEVEL}`;
-    this.ctx.fillStyle = level > 0 ? '#00ff00' : '#666666';
+    this.ctx.fillStyle = level > 0 ? '#44dd66' : '#554433';
     this.ctx.fillText(levelText, (x + 16) * cellWidth, y * cellHeight);
 
     // Cost or MAXED
     if (isMaxed) {
-      this.ctx.fillStyle = '#00ff88';
+      this.ctx.fillStyle = '#44dd66';
       this.ctx.fillText('[MAXED]', (x + 3) * cellWidth, (y + 1) * cellHeight);
     } else {
-      this.ctx.fillStyle = canAfford ? '#ffdd00' : '#884400';
+      this.ctx.fillStyle = canAfford ? '#ffcc44' : '#553322';
       this.ctx.fillText(`[${cost}¤]`, (x + 3) * cellWidth, (y + 1) * cellHeight);
     }
 
     // Damage info
-    this.ctx.fillStyle = '#666666';
+    this.ctx.fillStyle = '#665544';
     if (isMaxed) {
       this.ctx.fillText(`Dmg: ${currentDamage}`, (x + 12) * cellWidth, (y + 1) * cellHeight);
     } else {
@@ -2157,16 +2188,16 @@ export class Renderer {
     }
   }
 
-  /** Draw pause screen overlay */
+  /** Draw pause screen overlay — The Finals timeout style */
   drawPauseScreen(): void {
     const { screenWidth, screenHeight, cellWidth, cellHeight } = this.config;
 
-    // Semi-transparent dark overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    // Dark warm overlay
+    this.ctx.fillStyle = 'rgba(10, 8, 5, 0.8)';
     this.ctx.fillRect(0, 0, screenWidth * cellWidth, screenHeight * cellHeight);
 
     // Pause title
-    this.ctx.fillStyle = '#ffff00';
+    this.ctx.fillStyle = '#ffaa33';
     this.ctx.font = `${cellHeight * 3}px monospace`;
     const title = 'PAUSED';
     const titleWidth = title.length * cellWidth * 1.8;
@@ -2175,14 +2206,14 @@ export class Renderer {
     this.ctx.font = `${cellHeight}px monospace`;
 
     // Instructions
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = '#ddccbb';
     const instructions = [
       'Press P or ESC to resume',
       '',
       'WASD - Move',
       'Mouse/Space - Fire',
       '1-8 - Switch weapon',
-      'H - Help',
+      'H - Guide',
     ];
 
     const startY = screenHeight / 2;
@@ -2193,8 +2224,8 @@ export class Renderer {
     }
 
     // Quit hint
-    this.ctx.fillStyle = '#666666';
-    const quitHint = 'Press ESC twice to quit to menu';
+    this.ctx.fillStyle = '#554433';
+    const quitHint = 'Press ESC twice to forfeit';
     const quitWidth = quitHint.length * cellWidth;
     this.ctx.fillText(quitHint, (screenWidth * cellWidth - quitWidth) / 2, (screenHeight - 5) * cellHeight);
   }

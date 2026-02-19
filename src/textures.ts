@@ -1,5 +1,8 @@
 /**
  * Texture system for ASCII wall rendering
+ * Visual theme: THE FINALS — modern urban construction, game-show aesthetic
+ * Warm oranges/golds, clean concrete, glass, steel, neon
+ *
  * Each texture is a 16x64 grid of ASCII characters with colour info
  */
 
@@ -51,9 +54,9 @@ export function sampleTexture(
 }
 
 /**
- * Create a procedural stone block texture
+ * 1. Clean concrete wall — modern poured concrete with form lines
  */
-function createStoneTexture(): Texture {
+function createConcreteTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -63,26 +66,27 @@ function createStoneTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Create stone block pattern with mortar lines
-      const blockY = y % 16;
-      const offset = Math.floor(y / 16) % 2 === 0 ? 0 : 4;
-      const actualBlockX = (x + offset) % 8;
-
-      // Mortar lines
-      if (blockY === 0 || actualBlockX === 0) {
-        chars.push('░');
-        colours.push('#444444');
+      // Horizontal form lines every 16 rows
+      const formLine = y % 16;
+      if (formLine === 0) {
+        chars.push('─');
+        colours.push('#8a8070');
       } else {
-        // Stone surface with variation
-        const noise = ((x * 7 + y * 13) % 5);
+        // Concrete surface with subtle variation
+        const noise = ((x * 7 + y * 13) % 7);
         if (noise < 2) {
-          chars.push('█');
-        } else if (noise < 4) {
           chars.push('▓');
+          colours.push('#b0a898');
+        } else if (noise < 4) {
+          chars.push('▒');
+          colours.push('#a89888');
+        } else if (noise < 6) {
+          chars.push('▓');
+          colours.push('#a09080');
         } else {
           chars.push('▒');
+          colours.push('#988878');
         }
-        colours.push('#888888');
       }
     }
 
@@ -93,9 +97,9 @@ function createStoneTexture(): Texture {
 }
 
 /**
- * Create a red brick texture
+ * 2. Modern brick — clean orange/tan brick with neat mortar
  */
-function createBrickTexture(): Texture {
+function createModernBrickTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -109,19 +113,23 @@ function createBrickTexture(): Texture {
       const offset = Math.floor(y / 8) % 2 === 0 ? 0 : 8;
       const blockX = (x + offset) % 16;
 
-      // Mortar lines (horizontal every 8, vertical every 16 with offset)
+      // Mortar lines
       if (blockY === 0 || blockX === 0) {
         chars.push('░');
-        colours.push('#666655');
+        colours.push('#c8b898');
       } else {
-        // Brick surface
-        const noise = ((x * 11 + y * 7) % 4);
+        // Warm brick surface
+        const noise = ((x * 11 + y * 7) % 5);
         if (noise < 2) {
           chars.push('▓');
-        } else {
+          colours.push('#cc8855');
+        } else if (noise < 4) {
           chars.push('▒');
+          colours.push('#bb7744');
+        } else {
+          chars.push('▓');
+          colours.push('#d49060');
         }
-        colours.push('#cc4444');
       }
     }
 
@@ -132,9 +140,9 @@ function createBrickTexture(): Texture {
 }
 
 /**
- * Create a blue tech panel texture
+ * 3. Glass panel — reflective modern glass curtain wall
  */
-function createTechPanelTexture(): Texture {
+function createGlassPanelTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -147,25 +155,34 @@ function createTechPanelTexture(): Texture {
       const panelX = x % 16;
       const panelY = y % 32;
 
-      // Panel border
+      // Aluminium frame
       if (panelX === 0 || panelX === 15 || panelY === 0 || panelY === 31) {
         chars.push('█');
-        colours.push('#003366');
+        colours.push('#8899aa');
       }
-      // Horizontal lines (tech detail)
-      else if (panelY % 8 === 4) {
+      // Horizontal mullion
+      else if (panelY === 16) {
         chars.push('═');
-        colours.push('#0088ff');
+        colours.push('#7788aa');
       }
-      // Vertical accent
-      else if (panelX === 8) {
-        chars.push('│');
-        colours.push('#0066cc');
-      }
-      // Panel interior
-      else {
+      // Glass reflection streaks
+      else if ((panelX + panelY) % 12 === 0) {
         chars.push('▒');
-        colours.push('#004488');
+        colours.push('#88ccdd');
+      }
+      // Glass surface
+      else {
+        const tint = ((x + y) % 3);
+        if (tint === 0) {
+          chars.push('░');
+          colours.push('#4488aa');
+        } else if (tint === 1) {
+          chars.push('░');
+          colours.push('#3d7a99');
+        } else {
+          chars.push('░');
+          colours.push('#5599bb');
+        }
       }
     }
 
@@ -176,9 +193,9 @@ function createTechPanelTexture(): Texture {
 }
 
 /**
- * Create yellow warning stripe texture
+ * 4. Construction barrier — orange/white hazard stripes
  */
-function createWarningTexture(): Texture {
+function createBarrierTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -193,10 +210,10 @@ function createWarningTexture(): Texture {
 
       if (stripe < 8) {
         chars.push('█');
-        colours.push('#ffcc00');
+        colours.push('#ff8800');
       } else {
         chars.push('█');
-        colours.push('#222222');
+        colours.push('#f0e8dd');
       }
     }
 
@@ -207,9 +224,9 @@ function createWarningTexture(): Texture {
 }
 
 /**
- * Create purple organic flesh texture (Doom-style)
+ * 5. Damaged drywall — crumbling interior wall with exposed structure
  */
-function createFleshTexture(): Texture {
+function createDrywallTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -219,22 +236,23 @@ function createFleshTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Organic, lumpy pattern
-      const noise = Math.sin(x * 0.8) * Math.cos(y * 0.3) +
-                    Math.sin((x + y) * 0.5) * 0.5;
+      const damage = Math.sin(x * 0.8) * Math.cos(y * 0.3) +
+                     Math.sin((x + y) * 0.5) * 0.5;
 
-      if (noise > 0.3) {
-        chars.push('█');
-        colours.push('#993399');
-      } else if (noise > 0) {
+      if (damage > 0.3) {
+        // Exposed structure/studs
+        chars.push('║');
+        colours.push('#aa8855');
+      } else if (damage > 0) {
         chars.push('▓');
-        colours.push('#772277');
-      } else if (noise > -0.3) {
+        colours.push('#ccbbaa');
+      } else if (damage > -0.3) {
         chars.push('▒');
-        colours.push('#661166');
+        colours.push('#ddccbb');
       } else {
+        // Clean drywall
         chars.push('░');
-        colours.push('#550055');
+        colours.push('#e8ddd0');
       }
     }
 
@@ -245,9 +263,9 @@ function createFleshTexture(): Texture {
 }
 
 /**
- * Create cyan circuit board texture
+ * 6. LED display / digital billboard — neon accents on dark panel
  */
-function createCircuitTexture(): Texture {
+function createLEDDisplayTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -260,25 +278,25 @@ function createCircuitTexture(): Texture {
       const gridX = x % 8;
       const gridY = y % 8;
 
-      // Circuit traces
+      // LED grid lines
       if (gridX === 0 || gridY === 0) {
         chars.push('─');
-        colours.push('#00ffff');
+        colours.push('#ff8800');
       }
-      // Junction points
+      // Bright LED pixels
       else if (gridX === 4 && gridY === 4) {
         chars.push('●');
-        colours.push('#00ffcc');
+        colours.push('#ffaa00');
       }
-      // Chip patterns
+      // Active pixels
       else if ((x + y) % 7 === 0) {
         chars.push('▪');
-        colours.push('#008888');
+        colours.push('#ffcc44');
       }
-      // Background
+      // Dark panel background
       else {
         chars.push('░');
-        colours.push('#004444');
+        colours.push('#2a2520');
       }
     }
 
@@ -289,9 +307,9 @@ function createCircuitTexture(): Texture {
 }
 
 /**
- * Create lava texture with flowing animation support
+ * 7. Exposed steel girders — structural steel I-beams
  */
-function createLavaTexture(): Texture {
+function createSteelGirderTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -301,22 +319,28 @@ function createLavaTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Flowing lava pattern
-      const flow = Math.sin(x * 0.5 + y * 0.2) * Math.cos(y * 0.3);
-      const bubble = Math.sin(x * 1.2) * Math.sin(y * 0.8);
+      const beamX = x % 8;
+      const beamY = y % 16;
 
-      if (flow + bubble > 0.5) {
+      // I-beam flanges
+      if (beamY < 2 || beamY > 13) {
         chars.push('█');
-        colours.push('#ff6600');
-      } else if (flow + bubble > 0) {
-        chars.push('▓');
-        colours.push('#ff4400');
-      } else if (flow + bubble > -0.5) {
-        chars.push('▒');
-        colours.push('#cc2200');
-      } else {
+        colours.push('#8a7a6a');
+      }
+      // I-beam web
+      else if (beamX >= 3 && beamX <= 4) {
+        chars.push('║');
+        colours.push('#7a6a5a');
+      }
+      // Rivet
+      else if (beamX === 3 && beamY === 8) {
+        chars.push('●');
+        colours.push('#998877');
+      }
+      // Behind the beam
+      else {
         chars.push('░');
-        colours.push('#880000');
+        colours.push('#332a22');
       }
     }
 
@@ -327,9 +351,9 @@ function createLavaTexture(): Texture {
 }
 
 /**
- * Create toxic slime texture
+ * 8. Tiled bathroom/interior — clean white/cream tile
  */
-function createSlimeTexture(): Texture {
+function createTileTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -339,25 +363,27 @@ function createSlimeTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Bubbling slime pattern
-      const drip = Math.sin(x * 0.3) + Math.cos(y * 0.15);
-      const bubble = ((x * 7 + y * 11) % 13) < 2;
+      const tileX = x % 8;
+      const tileY = y % 8;
 
-      if (bubble) {
-        chars.push('○');
-        colours.push('#88ff88');
-      } else if (drip > 0.5) {
-        chars.push('█');
-        colours.push('#44cc44');
-      } else if (drip > 0) {
-        chars.push('▓');
-        colours.push('#33aa33');
-      } else if (drip > -0.5) {
-        chars.push('▒');
-        colours.push('#228822');
-      } else {
+      // Grout lines
+      if (tileX === 0 || tileY === 0) {
         chars.push('░');
-        colours.push('#116611');
+        colours.push('#999088');
+      }
+      // Tile surface
+      else {
+        const shine = ((x * 3 + y * 7) % 5);
+        if (shine === 0) {
+          chars.push('▓');
+          colours.push('#f0e8dd');
+        } else if (shine < 3) {
+          chars.push('▒');
+          colours.push('#e8ddd2');
+        } else {
+          chars.push('▓');
+          colours.push('#ece2d8');
+        }
       }
     }
 
@@ -368,9 +394,9 @@ function createSlimeTexture(): Texture {
 }
 
 /**
- * Create metal grate texture
+ * 9. Steel mesh scaffolding — construction site scaffolding
  */
-function createMetalGrateTexture(): Texture {
+function createScaffoldingTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -383,14 +409,14 @@ function createMetalGrateTexture(): Texture {
       const gridX = x % 4;
       const gridY = y % 4;
 
-      // Grid pattern
+      // Steel mesh
       if (gridX === 0 || gridY === 0) {
         chars.push('█');
-        colours.push('#666666');
+        colours.push('#888078');
       } else {
-        // Holes in the grate
+        // Gaps in mesh
         chars.push('░');
-        colours.push('#222222');
+        colours.push('#4a4038');
       }
     }
 
@@ -401,9 +427,9 @@ function createMetalGrateTexture(): Texture {
 }
 
 /**
- * Create blood-soaked wall texture
+ * 10. Rubble wall — destroyed building debris
  */
-function createBloodWallTexture(): Texture {
+function createRubbleTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -413,27 +439,27 @@ function createBloodWallTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Dripping blood pattern - more blood at top, drips down
-      const drip = Math.sin(x * 0.8) * (1 - y / height) + Math.random() * 0.2;
+      const debris = Math.sin(x * 0.8) * (1 - y / height) + Math.random() * 0.2;
 
-      if (drip > 0.4) {
+      if (debris > 0.4) {
         chars.push('█');
-        colours.push('#880000');
-      } else if (drip > 0.2) {
+        colours.push('#8a7a68');
+      } else if (debris > 0.2) {
         chars.push('▓');
-        colours.push('#660000');
-      } else if (drip > 0) {
+        colours.push('#7a6a58');
+      } else if (debris > 0) {
         chars.push('▒');
-        colours.push('#550000');
+        colours.push('#6a5a48');
       } else {
-        // Base wall
+        // Exposed rebar/structure
         const noise = ((x * 7 + y * 13) % 5);
         if (noise < 2) {
           chars.push('▓');
+          colours.push('#665544');
         } else {
           chars.push('▒');
+          colours.push('#554433');
         }
-        colours.push('#444444');
       }
     }
 
@@ -444,9 +470,9 @@ function createBloodWallTexture(): Texture {
 }
 
 /**
- * Create pulsing flesh wall texture (Doom-style hell)
+ * 11. Neon billboard — glowing game show advertisement
  */
-function createPulsingFleshTexture(): Texture {
+function createNeonBillboardTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -456,24 +482,34 @@ function createPulsingFleshTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Organic veins and pulsing pattern
-      const veinX = Math.sin(x * 0.4 + y * 0.1);
-      const veinY = Math.cos(y * 0.3 + x * 0.15);
-      const pulse = veinX * veinY;
+      const panelX = x % 16;
+      const panelY = y % 32;
 
-      // Vein pattern
-      if (Math.abs(veinX) < 0.2 || Math.abs(veinY) < 0.2) {
+      // Neon border
+      if (panelX === 0 || panelX === 15 || panelY === 0 || panelY === 31) {
         chars.push('█');
-        colours.push('#cc00cc');  // Bright purple veins
-      } else if (pulse > 0.3) {
-        chars.push('▓');
-        colours.push('#882288');
-      } else if (pulse > 0) {
+        colours.push('#ff6600');
+      }
+      // Neon tube patterns (horizontal)
+      else if (panelY % 8 === 4) {
+        const glow = ((x + y) % 3);
+        if (glow === 0) {
+          chars.push('═');
+          colours.push('#ffaa00');
+        } else {
+          chars.push('═');
+          colours.push('#ff8800');
+        }
+      }
+      // Vertical neon accent
+      else if (panelX === 8) {
+        chars.push('│');
+        colours.push('#ffcc44');
+      }
+      // Dark backing
+      else {
         chars.push('▒');
-        colours.push('#661166');
-      } else {
-        chars.push('░');
-        colours.push('#440044');
+        colours.push('#1a1510');
       }
     }
 
@@ -484,9 +520,9 @@ function createPulsingFleshTexture(): Texture {
 }
 
 /**
- * Create tech conduit texture with glowing pipes
+ * 12. Pipe conduit — industrial HVAC/plumbing runs
  */
-function createTechConduitTexture(): Texture {
+function createPipeConduitTexture(): Texture {
   const width = 16;
   const height = 64;
   const columns: TextureColumn[] = [];
@@ -499,32 +535,32 @@ function createTechConduitTexture(): Texture {
       const pipeX = x % 8;
       const pipeY = y % 16;
 
-      // Pipe structure
+      // Pipe walls
       if (pipeX === 0 || pipeX === 7) {
         chars.push('║');
-        colours.push('#446688');
+        colours.push('#88776a');
       } else if (pipeY === 0 || pipeY === 15) {
         chars.push('═');
-        colours.push('#446688');
+        colours.push('#88776a');
       }
-      // Glowing energy in pipe
+      // Pipe interior — warm light from inside
       else if (pipeX >= 2 && pipeX <= 5 && pipeY >= 4 && pipeY <= 11) {
         const glow = ((y + x) % 4);
         if (glow === 0) {
           chars.push('█');
-          colours.push('#00ffff');
+          colours.push('#ffaa44');
         } else if (glow === 1) {
           chars.push('▓');
-          colours.push('#00cccc');
+          colours.push('#dd8833');
         } else {
           chars.push('▒');
-          colours.push('#009999');
+          colours.push('#bb6622');
         }
       }
-      // Pipe interior
+      // Pipe exterior
       else {
         chars.push('░');
-        colours.push('#223344');
+        colours.push('#443830');
       }
     }
 
@@ -534,10 +570,12 @@ function createTechConduitTexture(): Texture {
   return { width, height, columns };
 }
 
+// ─── Floor Textures ────────────────────────────────────────────
+
 /**
- * Create a stone floor texture
+ * Standard floor — polished concrete
  */
-function createFloorTexture(): Texture {
+function createConcreteFloorTexture(): Texture {
   const width = 16;
   const height = 16;
   const columns: TextureColumn[] = [];
@@ -547,24 +585,24 @@ function createFloorTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Tile pattern with grout lines
       const tileX = x % 8;
       const tileY = y % 8;
 
+      // Expansion joints
       if (tileX === 0 || tileY === 0) {
         chars.push('░');
-        colours.push('#222222');
+        colours.push('#3a3530');
       } else {
         const noise = ((x * 17 + y * 23) % 7);
         if (noise < 2) {
           chars.push('▓');
-          colours.push('#444444');
+          colours.push('#5a5248');
         } else if (noise < 4) {
           chars.push('▒');
-          colours.push('#3a3a3a');
+          colours.push('#524a40');
         } else {
           chars.push('░');
-          colours.push('#333333');
+          colours.push('#4a4238');
         }
       }
     }
@@ -576,9 +614,9 @@ function createFloorTexture(): Texture {
 }
 
 /**
- * Create a hell floor texture (red/orange cracks)
+ * Rubble floor — debris-covered ground
  */
-function createHellFloorTexture(): Texture {
+function createRubbleFloorTexture(): Texture {
   const width = 16;
   const height = 16;
   const columns: TextureColumn[] = [];
@@ -588,23 +626,22 @@ function createHellFloorTexture(): Texture {
     const colours: string[] = [];
 
     for (let y = 0; y < height; y++) {
-      // Cracked floor with lava showing through
       const crack = Math.sin(x * 0.7 + y * 0.3) * Math.cos(x * 0.4 - y * 0.6);
 
       if (crack > 0.6) {
         chars.push('█');
-        colours.push('#ff4400'); // Lava glow
+        colours.push('#aa8855');
       } else if (crack > 0.3) {
         chars.push('▓');
-        colours.push('#882200');
+        colours.push('#7a6a55');
       } else {
         const noise = ((x * 13 + y * 19) % 5);
         if (noise < 2) {
           chars.push('▓');
-          colours.push('#332222');
+          colours.push('#4a4035');
         } else {
           chars.push('▒');
-          colours.push('#2a1a1a');
+          colours.push('#3a3228');
         }
       }
     }
@@ -616,94 +653,9 @@ function createHellFloorTexture(): Texture {
 }
 
 /**
- * Create a starfield ceiling texture
+ * Metal floor — diamond plate / industrial
  */
-function createStarCeilingTexture(): Texture {
-  const width = 32;
-  const height = 32;
-  const columns: TextureColumn[] = [];
-
-  // Pre-generate star positions
-  const stars: Set<string> = new Set();
-  const prng = (n: number) => ((n * 1103515245 + 12345) & 0x7fffffff) % 100;
-
-  for (let i = 0; i < 40; i++) {
-    const sx = prng(i * 7) % width;
-    const sy = prng(i * 13 + 50) % height;
-    stars.add(`${sx},${sy}`);
-  }
-
-  for (let x = 0; x < width; x++) {
-    const chars: string[] = [];
-    const colours: string[] = [];
-
-    for (let y = 0; y < height; y++) {
-      if (stars.has(`${x},${y}`)) {
-        const brightness = prng(x * 11 + y * 17);
-        if (brightness < 30) {
-          chars.push('★');
-          colours.push('#ffffff');
-        } else if (brightness < 60) {
-          chars.push('✦');
-          colours.push('#aaaaff');
-        } else {
-          chars.push('·');
-          colours.push('#8888aa');
-        }
-      } else {
-        chars.push(' ');
-        colours.push('#0a0a15');
-      }
-    }
-
-    columns.push({ chars, colours });
-  }
-
-  return { width, height, columns };
-}
-
-/**
- * Create a hell ceiling texture (fiery clouds)
- */
-function createHellCeilingTexture(): Texture {
-  const width = 16;
-  const height = 16;
-  const columns: TextureColumn[] = [];
-
-  for (let x = 0; x < width; x++) {
-    const chars: string[] = [];
-    const colours: string[] = [];
-
-    for (let y = 0; y < height; y++) {
-      // Fiery cloud pattern
-      const cloud = Math.sin(x * 0.5) * Math.cos(y * 0.5) +
-                    Math.sin((x + y) * 0.3) * 0.5;
-
-      if (cloud > 0.5) {
-        chars.push('█');
-        colours.push('#ff6600');
-      } else if (cloud > 0.2) {
-        chars.push('▓');
-        colours.push('#cc4400');
-      } else if (cloud > -0.2) {
-        chars.push('▒');
-        colours.push('#882200');
-      } else {
-        chars.push('░');
-        colours.push('#441100');
-      }
-    }
-
-    columns.push({ chars, colours });
-  }
-
-  return { width, height, columns };
-}
-
-/**
- * Create a tech floor texture (metal plates)
- */
-function createTechFloorTexture(): Texture {
+function createMetalFloorTexture(): Texture {
   const width = 16;
   const height = 16;
   const columns: TextureColumn[] = [];
@@ -719,25 +671,132 @@ function createTechFloorTexture(): Texture {
       // Plate edges
       if (plateX === 0 || plateY === 0) {
         chars.push('─');
-        colours.push('#555566');
+        colours.push('#6a6258');
       } else if (plateX === 7 || plateY === 7) {
         chars.push('─');
-        colours.push('#333344');
+        colours.push('#4a4238');
       }
-      // Rivets at corners
-      else if ((plateX === 1 || plateX === 6) && (plateY === 1 || plateY === 6)) {
-        chars.push('●');
-        colours.push('#666677');
+      // Diamond plate pattern
+      else if ((plateX + plateY) % 3 === 0) {
+        chars.push('◆');
+        colours.push('#7a7268');
       }
       // Plate surface
       else {
         const noise = ((x * 11 + y * 7) % 4);
         if (noise === 0) {
           chars.push('▓');
-          colours.push('#445566');
+          colours.push('#6a6258');
         } else {
           chars.push('▒');
-          colours.push('#3a4a5a');
+          colours.push('#5a5248');
+        }
+      }
+    }
+
+    columns.push({ chars, colours });
+  }
+
+  return { width, height, columns };
+}
+
+// ─── Ceiling Textures ────────────────────────────────────────────
+
+/**
+ * Open sky ceiling — bright daytime sky
+ */
+function createSkyCeilingTexture(): Texture {
+  const width = 32;
+  const height = 32;
+  const columns: TextureColumn[] = [];
+
+  // Pre-generate cloud positions
+  const clouds: Set<string> = new Set();
+  const prng = (n: number) => ((n * 1103515245 + 12345) & 0x7fffffff) % 100;
+
+  for (let i = 0; i < 50; i++) {
+    const sx = prng(i * 7) % width;
+    const sy = prng(i * 13 + 50) % height;
+    clouds.add(`${sx},${sy}`);
+    // Clouds are wider than stars
+    clouds.add(`${(sx + 1) % width},${sy}`);
+    if (i % 3 === 0) clouds.add(`${(sx + 2) % width},${sy}`);
+  }
+
+  for (let x = 0; x < width; x++) {
+    const chars: string[] = [];
+    const colours: string[] = [];
+
+    for (let y = 0; y < height; y++) {
+      if (clouds.has(`${x},${y}`)) {
+        const brightness = prng(x * 11 + y * 17);
+        if (brightness < 40) {
+          chars.push('█');
+          colours.push('#e8e0d8');
+        } else if (brightness < 70) {
+          chars.push('▓');
+          colours.push('#d8d0c8');
+        } else {
+          chars.push('▒');
+          colours.push('#c8c0b8');
+        }
+      } else {
+        // Sky gradient
+        const depth = y / height;
+        if (depth < 0.3) {
+          chars.push(' ');
+          colours.push('#5588cc');
+        } else if (depth < 0.6) {
+          chars.push(' ');
+          colours.push('#6699cc');
+        } else {
+          chars.push(' ');
+          colours.push('#88aacc');
+        }
+      }
+    }
+
+    columns.push({ chars, colours });
+  }
+
+  return { width, height, columns };
+}
+
+/**
+ * Indoor ceiling — exposed concrete with light fixtures
+ */
+function createIndoorCeilingTexture(): Texture {
+  const width = 16;
+  const height = 16;
+  const columns: TextureColumn[] = [];
+
+  for (let x = 0; x < width; x++) {
+    const chars: string[] = [];
+    const colours: string[] = [];
+
+    for (let y = 0; y < height; y++) {
+      const gridX = x % 8;
+      const gridY = y % 8;
+
+      // Light fixture
+      if (gridX >= 3 && gridX <= 4 && gridY >= 3 && gridY <= 4) {
+        chars.push('█');
+        colours.push('#ffdd88');
+      }
+      // Ceiling grid/T-bar
+      else if (gridX === 0 || gridY === 0) {
+        chars.push('─');
+        colours.push('#7a7068');
+      }
+      // Ceiling tile
+      else {
+        const noise = ((x * 5 + y * 11) % 4);
+        if (noise === 0) {
+          chars.push('▒');
+          colours.push('#8a8078');
+        } else {
+          chars.push('░');
+          colours.push('#7a7068');
         }
       }
     }
@@ -750,26 +809,26 @@ function createTechFloorTexture(): Texture {
 
 // Pre-generate all textures
 const TEXTURES: Record<number, Texture> = {
-  1: createStoneTexture(),
-  2: createBrickTexture(),
-  3: createTechPanelTexture(),
-  4: createWarningTexture(),
-  5: createFleshTexture(),
-  6: createCircuitTexture(),
-  7: createLavaTexture(),
-  8: createSlimeTexture(),
-  9: createMetalGrateTexture(),
-  10: createBloodWallTexture(),
-  11: createPulsingFleshTexture(),
-  12: createTechConduitTexture(),
+  1: createConcreteTexture(),         // Clean concrete
+  2: createModernBrickTexture(),      // Warm modern brick
+  3: createGlassPanelTexture(),       // Glass curtain wall
+  4: createBarrierTexture(),          // Construction barrier (orange/white)
+  5: createDrywallTexture(),          // Damaged drywall
+  6: createLEDDisplayTexture(),       // LED display/billboard
+  7: createSteelGirderTexture(),      // Exposed steel structure
+  8: createTileTexture(),             // Clean interior tile
+  9: createScaffoldingTexture(),      // Steel mesh scaffolding
+  10: createRubbleTexture(),          // Rubble/debris
+  11: createNeonBillboardTexture(),   // Neon game-show billboard
+  12: createPipeConduitTexture(),     // Industrial pipe runs
 };
 
 // Floor and ceiling textures
-const FLOOR_TEXTURE = createFloorTexture();
-const HELL_FLOOR_TEXTURE = createHellFloorTexture();
-const TECH_FLOOR_TEXTURE = createTechFloorTexture();
-const STAR_CEILING_TEXTURE = createStarCeilingTexture();
-const HELL_CEILING_TEXTURE = createHellCeilingTexture();
+const FLOOR_TEXTURE = createConcreteFloorTexture();
+const HELL_FLOOR_TEXTURE = createRubbleFloorTexture();
+const TECH_FLOOR_TEXTURE = createMetalFloorTexture();
+const STAR_CEILING_TEXTURE = createSkyCeilingTexture();
+const HELL_CEILING_TEXTURE = createIndoorCeilingTexture();
 
 /**
  * Get texture for a wall type
@@ -780,7 +839,7 @@ export function getTexture(wallType: number): Texture {
 
 /**
  * Sample texture for a wall strip
- * @param wallType Wall type (1-6)
+ * @param wallType Wall type (1-12)
  * @param wallX Where ray hit wall (0-1)
  * @param startV Starting V coordinate for this strip
  * @param endV Ending V coordinate for this strip
@@ -798,9 +857,9 @@ export function sampleWallStrip(
   const texture = getTexture(wallType);
   const result: Array<{ char: string; colour: string }> = [];
 
-  // Calculate brightness based on distance
+  // Calculate brightness based on distance — brighter overall for The Finals look
   const maxDist = 16;
-  const brightness = Math.max(0.2, 1 - (distance / maxDist));
+  const brightness = Math.max(0.3, 1 - (distance / maxDist));
 
   for (let i = 0; i < height; i++) {
     const v = startV + (endV - startV) * (i / height);
@@ -815,7 +874,7 @@ export function sampleWallStrip(
  * @param worldX World X position
  * @param worldY World Y position
  * @param distance Distance for brightness calculation
- * @param floorType 0 = normal, 1 = hell, 2 = tech
+ * @param floorType 0 = concrete, 1 = rubble, 2 = metal
  */
 export function sampleFloorTexture(
   worldX: number,
@@ -831,9 +890,9 @@ export function sampleFloorTexture(
   const u = worldX - Math.floor(worldX);
   const v = worldY - Math.floor(worldY);
 
-  // Calculate brightness based on distance
+  // Brighter floor rendering
   const maxDist = 12;
-  const brightness = Math.max(0.15, 1 - (distance / maxDist));
+  const brightness = Math.max(0.2, 1 - (distance / maxDist));
 
   return sampleTexture(texture, u, v, brightness);
 }
@@ -843,7 +902,7 @@ export function sampleFloorTexture(
  * @param worldX World X position
  * @param worldY World Y position
  * @param distance Distance for brightness calculation
- * @param ceilingType 0 = stars, 1 = hell
+ * @param ceilingType 0 = sky, 1 = indoor
  * @param animTime Current animation time for scrolling effect
  */
 export function sampleCeilingTexture(
@@ -855,27 +914,20 @@ export function sampleCeilingTexture(
 ): { char: string; colour: string } {
   const texture = ceilingType === 1 ? HELL_CEILING_TEXTURE : STAR_CEILING_TEXTURE;
 
-  // Scale for ceiling (larger tiles)
+  // Scale for ceiling
   const scale = ceilingType === 0 ? 0.5 : 1.0;
 
-  // Apply scrolling animation
-  const scrollSpeed = ceilingType === 0 ? 0.02 : 0.05;
+  // Slow cloud drift for sky
+  const scrollSpeed = ceilingType === 0 ? 0.015 : 0;
   const animOffsetX = animTime * scrollSpeed;
-  const animOffsetY = animTime * scrollSpeed * 0.7;
+  const animOffsetY = animTime * scrollSpeed * 0.5;
 
   const u = ((worldX + animOffsetX) * scale) % 1;
   const v = ((worldY + animOffsetY) * scale) % 1;
 
-  // Ceiling is a bit darker
+  // Brighter ceiling
   const maxDist = 10;
-  const brightness = Math.max(0.1, 0.8 - (distance / maxDist));
-
-  // Add twinkling effect for stars
-  if (ceilingType === 0) {
-    const twinkle = Math.sin(animTime * 3 + worldX * 10 + worldY * 7) * 0.15;
-    const sample = sampleTexture(texture, u < 0 ? u + 1 : u, v < 0 ? v + 1 : v, brightness + twinkle);
-    return sample;
-  }
+  const brightness = Math.max(0.2, 0.9 - (distance / maxDist));
 
   return sampleTexture(texture, u < 0 ? u + 1 : u, v < 0 ? v + 1 : v, brightness);
 }
