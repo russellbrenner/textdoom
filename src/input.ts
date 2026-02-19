@@ -88,6 +88,8 @@ export class InputHandler {
         switchWeaponByNumber(this.weapon1, 10, this.player1);
       } else if (e.code === 'Minus') {
         switchWeaponByNumber(this.weapon1, 11, this.player1);
+      } else if (e.code === 'Equal') {
+        switchWeaponByNumber(this.weapon1, 12, this.player1);
       }
       // Numpad support
       if (e.code >= 'Numpad1' && e.code <= 'Numpad9') {
@@ -97,12 +99,14 @@ export class InputHandler {
         switchWeaponByNumber(this.weapon1, 10, this.player1);
       } else if (e.code === 'NumpadSubtract') {
         switchWeaponByNumber(this.weapon1, 11, this.player1);
+      } else if (e.code === 'NumpadAdd') {
+        switchWeaponByNumber(this.weapon1, 12, this.player1);
       }
     }
 
     // Handle weapon switching for Player 2 (F-keys for weapons)
     if (this.weapon2 && this.player2) {
-      // F1-F11 for Player 2's weapons (avoids conflict with P1's number keys)
+      // F1-F12 for Player 2's weapons (avoids conflict with P1's number keys)
       if (e.code === 'F1') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 1, this.player2); }
       if (e.code === 'F2') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 2, this.player2); }
       if (e.code === 'F3') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 3, this.player2); }
@@ -114,6 +118,7 @@ export class InputHandler {
       if (e.code === 'F9') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 9, this.player2); }
       if (e.code === 'F10') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 10, this.player2); }
       if (e.code === 'F11') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 11, this.player2); }
+      if (e.code === 'F12') { e.preventDefault(); switchWeaponByNumber(this.weapon2, 12, this.player2); }
     }
   }
 

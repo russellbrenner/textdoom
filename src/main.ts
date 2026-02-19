@@ -56,7 +56,7 @@ let shopSelection = 0; // Currently selected weapon index (0-10)
 let isPaused = false;
 
 // Weapon order for shop (same as weapon.ts)
-const SHOP_WEAPONS: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
+const SHOP_WEAPONS: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower', 'rifle'];
 
 // Initialise game components
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -180,6 +180,7 @@ window.addEventListener('keydown', (e) => {
       else if (e.code === 'Digit9') weaponIndex = 8;
       else if (e.code === 'Digit0') weaponIndex = 9;
       else if (e.code === 'Minus') weaponIndex = 10;
+      else if (e.code === 'Equal') weaponIndex = 11;
 
       if (weaponIndex >= 0 && weaponIndex < SHOP_WEAPONS.length) {
         const weapon = SHOP_WEAPONS[weaponIndex];

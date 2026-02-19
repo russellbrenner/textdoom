@@ -104,10 +104,17 @@ const WEAPON_STATS: Record<WeaponType, WeaponStats> = {
     continuous: true,
     muzzleFlash: 0.7,
   },
+  rifle: {
+    damage: 40,           // High single-shot damage
+    cooldown: 0.7,        // Slow, deliberate shots
+    ammoType: 'bullets',
+    ammoPerShot: 2,       // Uses 2 bullets per shot
+    muzzleFlash: 0.6,
+  },
 };
 
 // Weapon order for switching (melee first, then ranged)
-const WEAPON_ORDER: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
+const WEAPON_ORDER: WeaponType[] = ['fist', 'knife', 'hammer', 'axe', 'pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower', 'rifle'];
 
 /**
  * Get damage multiplier based on weapon upgrade level

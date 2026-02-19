@@ -225,6 +225,26 @@ const WEAPON_ART: Record<string, { idle: string[]; fired: string[] }> = {
       '  ║██████║  ',
     ],
   },
+  rifle: {
+    idle: [
+      '════════════',
+      '   ╔══╗ ║█║ ',
+      '═══╣██╠═╩═╝ ',
+      '   ║██║     ',
+      '  ╔╝  ╚╗    ',
+      '  ╚════╝    ',
+      '            ',
+    ],
+    fired: [
+      ' \\████████/ ',
+      '════════════',
+      '   ╔══╗ ║█║ ',
+      '═══╣██╠═╩═╝ ',
+      '   ║██║     ',
+      '  ╔╝  ╚╗    ',
+      '  ╚════╝    ',
+    ],
+  },
 };
 
 // Sprite ASCII art (8 chars wide, 12 tall for detailed enemies)
@@ -1843,6 +1863,7 @@ export class Renderer {
       '9  Plasma        Cells (●)',
       '0  BFG 9000      Cells (●)',
       '-  Flamethrower  Fuel (▲)',
+      '=  Rifle         Bullets (•)',
     ];
     for (const line of weapons) {
       this.ctx.fillText(line, weaponsX * cellWidth, y * cellHeight);
@@ -2081,7 +2102,7 @@ export class Renderer {
 
     // Weapon lists - melee on left, ranged on right
     const meleeWeapons: WeaponType[] = ['fist', 'knife', 'hammer', 'axe'];
-    const rangedWeapons: WeaponType[] = ['pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower'];
+    const rangedWeapons: WeaponType[] = ['pistol', 'shotgun', 'chaingun', 'rocket', 'plasma', 'bfg', 'flamethrower', 'rifle'];
 
     const leftX = 25;
     const rightX = 110;
@@ -2105,6 +2126,7 @@ export class Renderer {
       plasma: '9',
       bfg: '0',
       flamethrower: '-',
+      rifle: '=',
     };
 
     // Draw melee weapons

@@ -39,6 +39,7 @@ const DEFAULT_UPGRADES: WeaponUpgrades = {
   plasma: 0,
   bfg: 0,
   flamethrower: 0,
+  rifle: 0,
 };
 
 /** Maximum upgrade level per weapon */
